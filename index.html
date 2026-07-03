@@ -1,65 +1,95 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ME & DB Location Map</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-#wrap { display: flex; gap: 0; align-items: flex-start; }
-#sidebar {
-  width: 200px; min-width: 200px;
-  background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: 8px; padding: 10px 0;
-  font-size: 12px; color: var(--color-text-primary);
-  max-height: 580px; overflow-y: auto; flex-shrink: 0;
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f6f8; color: #222; }
+#header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+#header h1 { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+#brand-filter { display: flex; gap: 6px; align-items: center; }
+.brand-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 20px; border: 1.5px solid #ccc;
+  background: #fff; font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s;
 }
-#sidebar-header { padding: 4px 12px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 4px; }
-#sidebar-header .sh-title { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.brand-btn .bdot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.brand-btn.active-me { background: #e8edf8; border-color: #1a3fa8; color: #1a3fa8; }
+.brand-btn.active-db { background: #fff0ec; border-color: #FF7043; color: #d84315; }
+.brand-btn.active-both { background: #f0f0f0; border-color: #555; color: #333; }
+.brand-btn:not(.active-me):not(.active-db):not(.active-both) { color: #999; border-color: #ddd; }
+#app { display: flex; height: calc(100vh - 49px); }
+#sidebar { width: 190px; min-width: 190px; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; overflow: hidden; }
+#sidebar-header { padding: 10px 12px 8px; border-bottom: 1px solid #e0e0e0; }
+.sh-title { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
 .ctrl-row { display: flex; gap: 6px; }
-.ctrl-btn { flex: 1; font-size: 11px; padding: 4px 0; border: 0.5px solid var(--color-border-secondary); background: transparent; border-radius: 5px; cursor: pointer; color: var(--color-text-primary); }
-.ctrl-btn:hover { background: var(--color-background-secondary); }
-#filter-count { font-size: 11px; color: var(--color-text-secondary); margin-top: 7px; }
-.year-row { display: flex; align-items: center; gap: 7px; padding: 3px 12px; cursor: pointer; user-select: none; }
-.year-row:hover { background: var(--color-background-secondary); }
+.ctrl-btn { flex: 1; font-size: 11px; padding: 5px 0; border: 1px solid #d0d0d0; background: #fff; border-radius: 5px; cursor: pointer; color: #333; }
+.ctrl-btn:hover { background: #f0f0f0; }
+#filter-count { font-size: 11px; color: #888; margin-top: 7px; }
+#year-list { overflow-y: auto; flex: 1; padding: 4px 0; }
+.year-row { display: flex; align-items: center; gap: 6px; padding: 3px 12px; cursor: pointer; user-select: none; }
+.year-row:hover { background: #f5f5f5; }
 .year-row input[type=checkbox] { width: 13px; height: 13px; cursor: pointer; accent-color: #1a3fa8; flex-shrink: 0; }
 .yr-label { flex: 1; font-size: 12px; }
-.yr-bar-wrap { width: 44px; height: 8px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
-.yr-bar { height: 100%; background: #1a3fa8; border-radius: 3px; opacity: 0.55; }
-.yr-count { width: 20px; text-align: right; font-size: 11px; color: var(--color-text-secondary); }
-#map-side { flex: 1; position: relative; min-width: 0; }
-#map-svg { width: 100%; height: auto; display: block; border-radius: 6px; }
+.yr-bars { display: flex; flex-direction: column; gap: 2px; width: 44px; }
+.yr-bar-wrap { height: 5px; background: #e8e8e8; border-radius: 2px; overflow: hidden; }
+.yr-bar-me { height: 100%; background: #1a3fa8; border-radius: 2px; opacity: 0.6; }
+.yr-bar-db { height: 100%; background: #FF7043; border-radius: 2px; opacity: 0.6; }
+.yr-count { width: 20px; text-align: right; font-size: 11px; color: #999; }
+#map-side { flex: 1; position: relative; overflow: hidden; }
 .state-fill { fill: #d6e4f0; stroke: #fff; stroke-width: 0.8; }
 .state-border { fill: none; stroke: #fff; stroke-width: 0.8; }
-#legend { display: flex; gap: 18px; padding: 8px 0 6px 2px; font-size: 12px; color: var(--color-text-secondary); align-items: center; }
-.ldot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; border: 1.5px solid rgba(0,0,0,0.12); }
 #tt {
   display: none; position: absolute;
   background: #fffde7; border: 1.5px solid #f0c040;
-  border-radius: 6px; padding: 11px 14px 10px;
-  min-width: 230px; font-size: 12px; line-height: 1.55; color: #222;
+  border-radius: 7px; padding: 11px 14px 10px;
+  min-width: 240px; font-size: 12px; line-height: 1.55; color: #222;
   pointer-events: none; z-index: 100;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.12);
 }
 .tt-pin { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #f0c040; position: absolute; bottom: -9px; left: 16px; }
-.tt-brand { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
-.tt-city { font-weight: 500; font-size: 14px; margin-bottom: 1px; }
+.tt-brand { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 2px; }
+.tt-city { font-weight: 600; font-size: 14px; margin-bottom: 1px; }
 .tt-addr { font-size: 11px; color: #666; margin-bottom: 6px; }
 .tt-divider { border: none; border-top: 0.5px solid #e8d870; margin: 5px 0; }
 .tt-grid { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 2px 8px; font-size: 11px; }
-.tt-gh { font-weight: 500; color: #555; text-align: right; padding-bottom: 2px; }
+.tt-gh { font-weight: 600; color: #555; text-align: right; padding-bottom: 2px; }
 .tt-gl { color: #888; }
-.tt-gv { text-align: right; color: #222; }
-.tt-row2 { display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; }
-.tt-label { color: #888; } .tt-val { font-weight: 500; }
-#loading { padding: 40px; text-align: center; color: var(--color-text-secondary); font-size: 13px; }
+.tt-gv { text-align: right; }
+#loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 14px; color: #666; }
+@media (max-width: 600px) {
+  #app { flex-direction: column; height: auto; }
+  #sidebar { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid #e0e0e0; max-height: 200px; }
+  #year-list { display: flex; flex-wrap: wrap; padding: 4px 8px; }
+  .year-row { padding: 3px 6px; }
+  #map-side { height: 65vw; min-height: 300px; }
+}
 </style>
+</head>
+<body>
 
-<h2 class="sr-only">Interactive US map of Main Event and Dave and Buster's locations with demographic data on hover.</h2>
-
-<div id="legend">
-  <span><span class="ldot" style="background:#1a3fa8;"></span>Main Event (65)</span>
-  <span><span class="ldot" style="background:#FF7043;"></span>Dave &amp; Buster's (182)</span>
+<div id="header">
+  <h1>Main Event &amp; Dave &amp; Buster's — US Locations</h1>
+  <div id="brand-filter">
+    <button class="brand-btn active-me" id="btn-me" onclick="setBrand('ME')">
+      <span class="bdot" style="background:#1a3fa8"></span> Main Event
+    </button>
+    <button class="brand-btn active-db" id="btn-db" onclick="setBrand('DB')">
+      <span class="bdot" style="background:#FF7043"></span> Dave &amp; Buster's
+    </button>
+    <button class="brand-btn active-both" id="btn-both" onclick="setBrand('BOTH')">
+      <span class="bdot" style="background:#1a3fa8"></span><span class="bdot" style="background:#FF7043;margin-left:-3px"></span> Both
+    </button>
+  </div>
 </div>
-<div id="wrap">
+
+<div id="app">
   <div id="sidebar">
     <div id="sidebar-header">
-      <div class="sh-title">Year opened</div>
+      <div class="sh-title" id="year-panel-title">Year opened</div>
       <div class="ctrl-row">
         <button class="ctrl-btn" id="btn-all">All</button>
         <button class="ctrl-btn" id="btn-none">None</button>
@@ -280,64 +310,110 @@ const locations = [
   {b:"DB",city:"Wauwatosa",state:"WI",addr:"2201 N Mayfair Rd",sqft:"40,000",yr:2010,lat:43.05,lng:-88.04,p20:48387,p10:46396,p00:47271,i20:83000,i10:64000,i00:55000}
 ];
 
-const yearCounts = {};
-locations.forEach(l => { yearCounts[l.yr] = (yearCounts[l.yr]||0)+1; });
-const years = Object.keys(yearCounts).map(Number).sort((a,b)=>a-b);
-const maxCount = Math.max(...Object.values(yearCounts));
-const activeYears = new Set(years);
+// --- State ---
+let activeBrand = 'BOTH';
+const activeYears = new Set();
+let dotNodes = [];
 
-function updateCount() {
-  const n = locations.filter(l => activeYears.has(l.yr)).length;
-  document.getElementById('filter-count').textContent = n + ' of 247 shown';
+// --- Brand filter ---
+function setBrand(brand) {
+  activeBrand = brand;
+  ['ME','DB','BOTH'].forEach(b => {
+    const el = document.getElementById('btn-' + b.toLowerCase());
+    el.className = 'brand-btn' + (brand === b ? ' active-' + b.toLowerCase() : '');
+  });
+  rebuildYearList();
+  updateDots();
+  updateCount();
 }
 
-const yearList = document.getElementById('year-list');
-years.forEach(yr => {
-  const cnt = yearCounts[yr];
-  const row = document.createElement('label');
-  row.className = 'year-row';
-  row.innerHTML = `<input type="checkbox" data-yr="${yr}" checked><span class="yr-label">${yr}</span><div class="yr-bar-wrap"><div class="yr-bar" style="width:${Math.round(cnt/maxCount*100)}%"></div></div><span class="yr-count">${cnt}</span>`;
-  row.querySelector('input').addEventListener('change', e => {
-    if (e.target.checked) activeYears.add(yr); else activeYears.delete(yr);
-    updateDots(); updateCount();
+// --- Year list ---
+function rebuildYearList() {
+  const filtered = locations.filter(l => activeBrand === 'BOTH' || l.b === activeBrand);
+  const yearCounts = {};
+  const meCounts = {}, dbCounts = {};
+  filtered.forEach(l => {
+    yearCounts[l.yr] = (yearCounts[l.yr]||0)+1;
+    if (l.b==='ME') meCounts[l.yr] = (meCounts[l.yr]||0)+1;
+    if (l.b==='DB') dbCounts[l.yr] = (dbCounts[l.yr]||0)+1;
   });
-  yearList.appendChild(row);
-});
+  const years = Object.keys(yearCounts).map(Number).sort((a,b)=>a-b);
+  const maxCount = Math.max(...Object.values(yearCounts));
+
+  // Seed activeYears with all years for this brand view if empty or switching
+  activeYears.clear();
+  years.forEach(y => activeYears.add(y));
+
+  const yearList = document.getElementById('year-list');
+  yearList.innerHTML = '';
+  years.forEach(yr => {
+    const cnt = yearCounts[yr];
+    const meC = meCounts[yr]||0;
+    const dbC = dbCounts[yr]||0;
+    const row = document.createElement('label');
+    row.className = 'year-row';
+    const showBoth = activeBrand === 'BOTH';
+    const barsME = showBoth ? `<div class="yr-bar-wrap"><div class="yr-bar-me" style="width:${Math.round(meC/maxCount*100)}%"></div></div>` : '';
+    const barsDB = showBoth ? `<div class="yr-bar-wrap"><div class="yr-bar-db" style="width:${Math.round(dbC/maxCount*100)}%"></div></div>` : '';
+    const singleBar = !showBoth ? `<div class="yr-bar-wrap" style="height:7px"><div style="height:100%;border-radius:2px;opacity:0.6;background:${activeBrand==='ME'?ME_COLOR:DB_COLOR};width:${Math.round(cnt/maxCount*100)}%"></div></div>` : '';
+    row.innerHTML = `
+      <input type="checkbox" data-yr="${yr}" checked>
+      <span class="yr-label">${yr}</span>
+      <div class="yr-bars">${showBoth ? barsME+barsDB : singleBar}</div>
+      <span class="yr-count">${cnt}</span>`;
+    row.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) activeYears.add(yr); else activeYears.delete(yr);
+      updateDots(); updateCount();
+    });
+    yearList.appendChild(row);
+  });
+
+  const title = document.getElementById('year-panel-title');
+  title.textContent = activeBrand === 'BOTH' ? 'Year opened — both brands' :
+    activeBrand === 'ME' ? 'Year opened — Main Event' : 'Year opened — Dave & Buster\'s';
+}
 
 document.getElementById('btn-all').addEventListener('click', () => {
-  years.forEach(y => activeYears.add(y));
-  yearList.querySelectorAll('input').forEach(cb => cb.checked = true);
+  document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = true; activeYears.add(+cb.dataset.yr); });
   updateDots(); updateCount();
 });
 document.getElementById('btn-none').addEventListener('click', () => {
-  activeYears.clear();
-  yearList.querySelectorAll('input').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = false; activeYears.delete(+cb.dataset.yr); });
   updateDots(); updateCount();
 });
 
-updateCount();
+function updateCount() {
+  const visible = locations.filter(l =>
+    (activeBrand === 'BOTH' || l.b === activeBrand) && activeYears.has(l.yr)
+  ).length;
+  const total = locations.filter(l => activeBrand === 'BOTH' || l.b === activeBrand).length;
+  document.getElementById('filter-count').textContent = `${visible} of ${total} shown`;
+}
 
-let dotNodes = [];
 function updateDots() {
-  dotNodes.forEach(({circle, yr}) => {
-    const on = activeYears.has(yr);
-    circle.attr('fill-opacity', on ? 0.88 : 0.15).attr('stroke-opacity', on ? 1 : 0.15);
+  dotNodes.forEach(({circle, yr, brand}) => {
+    const brandMatch = activeBrand === 'BOTH' || brand === activeBrand;
+    const yearMatch = activeYears.has(yr);
+    const on = brandMatch && yearMatch;
+    circle.attr('fill-opacity', on ? 0.88 : 0.1).attr('stroke-opacity', on ? 1 : 0.1);
   });
 }
 
+// --- Map ---
 const tt = document.getElementById('tt');
 const mapSide = document.getElementById('map-side');
 
 d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us => {
   document.getElementById('loading').remove();
   const W = 960, H = 580;
-  const proj = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
-  const path = d3.geoPath().projection(proj);
+  const projection = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
+  const path = d3.geoPath().projection(projection);
 
   const svg = d3.select('#map-side').append('svg')
-    .attr('id','map-svg').attr('viewBox',`0 0 ${W} ${H}`).attr('width','100%').style('display','block');
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .style('width','100%').style('height','100%').style('display','block');
 
-  svg.append('rect').attr('width',W).attr('height',H).attr('fill','#dce8f5').attr('rx',6);
+  svg.append('rect').attr('width',W).attr('height',H).attr('fill','#dce8f5');
   svg.append('g').selectAll('path')
     .data(topojson.feature(us, us.objects.states).features)
     .join('path').attr('class','state-fill').attr('d', path);
@@ -348,77 +424,68 @@ d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us => {
   const dotsLayer = svg.append('g');
 
   locations.forEach(loc => {
-    const p = proj([loc.lng, loc.lat]);
+    const p = projection([loc.lng, loc.lat]);
     if (!p) return;
     const [x, y] = p;
     const color = loc.b === 'ME' ? ME_COLOR : DB_COLOR;
-
     const g = dotsLayer.append('g').style('cursor','pointer');
     const circle = g.append('circle')
       .attr('cx',x).attr('cy',y).attr('r',5)
       .attr('fill',color).attr('fill-opacity',0.88)
       .attr('stroke','#fff').attr('stroke-width',1.2);
 
-    dotNodes.push({circle, yr: loc.yr});
+    dotNodes.push({circle, yr: loc.yr, brand: loc.b});
 
-    g.on('mouseenter', function() {
-      if (!activeYears.has(loc.yr)) return;
+    g.on('mouseenter touchstart', function(event) {
+      event.preventDefault();
+      const brandMatch = activeBrand === 'BOTH' || loc.b === activeBrand;
+      if (!brandMatch || !activeYears.has(loc.yr)) return;
       circle.attr('r', 7.5);
-      const svgEl = document.getElementById('map-svg');
+      const svgEl = mapSide.querySelector('svg');
       const sr = svgEl.getBoundingClientRect();
       const mr = mapSide.getBoundingClientRect();
       const scale = sr.width / W;
       const px = x * scale + (sr.left - mr.left);
       const py = y * scale + (sr.top - mr.top);
-
-      const popChg = loc.p10 > 0 ? Math.round((loc.p20 - loc.p10)/loc.p10*100) : 0;
-      const incChg = loc.i10 > 0 ? Math.round((loc.i20 - loc.i10)/loc.i10*100) : 0;
-      const popChgStr = (popChg >= 0 ? '+' : '') + popChg + '%';
-      const incChgStr = (incChg >= 0 ? '+' : '') + incChg + '%';
-      const popChgColor = popChg >= 0 ? '#2e7d32' : '#c62828';
-      const incChgColor = incChg >= 0 ? '#2e7d32' : '#c62828';
-
+      const popChg = loc.p10 > 0 ? Math.round((loc.p20-loc.p10)/loc.p10*100) : 0;
+      const incChg = loc.i10 > 0 ? Math.round((loc.i20-loc.i10)/loc.i10*100) : 0;
+      const pc = (popChg>=0?'+':'')+popChg+'%';
+      const ic = (incChg>=0?'+':'')+incChg+'%';
+      const pcol = popChg>=0?'#2e7d32':'#c62828';
+      const icol = incChg>=0?'#2e7d32':'#c62828';
       tt.innerHTML = `
         <div class="tt-pin"></div>
         <div class="tt-brand" style="color:${color}">${loc.b==='ME'?'Main Event':"Dave & Buster's"}</div>
         <div class="tt-city">${loc.city}, ${loc.state}</div>
-        <div class="tt-addr">${loc.addr} &nbsp;·&nbsp; ${loc.sqft} sq ft &nbsp;·&nbsp; Opened ${loc.yr}</div>
+        <div class="tt-addr">${loc.addr} · ${loc.sqft} sq ft · Opened ${loc.yr}</div>
         <hr class="tt-divider">
         <div class="tt-grid">
-          <span class="tt-gl"></span>
-          <span class="tt-gh">2000</span>
-          <span class="tt-gh">2010</span>
-          <span class="tt-gh">2020</span>
-          <span class="tt-gl">Population</span>
-          <span class="tt-gv">${fmt(loc.p00)}</span>
-          <span class="tt-gv">${fmt(loc.p10)}</span>
-          <span class="tt-gv">${fmt(loc.p20)}</span>
-          <span class="tt-gl">Med. income</span>
-          <span class="tt-gv">${fmtD(loc.i00)}</span>
-          <span class="tt-gv">${fmtD(loc.i10)}</span>
-          <span class="tt-gv">${fmtD(loc.i20)}</span>
+          <span class="tt-gl"></span><span class="tt-gh">2000</span><span class="tt-gh">2010</span><span class="tt-gh">2020</span>
+          <span class="tt-gl">Population</span><span class="tt-gv">${fmt(loc.p00)}</span><span class="tt-gv">${fmt(loc.p10)}</span><span class="tt-gv">${fmt(loc.p20)}</span>
+          <span class="tt-gl">Med. income</span><span class="tt-gv">${fmtD(loc.i00)}</span><span class="tt-gv">${fmtD(loc.i10)}</span><span class="tt-gv">${fmtD(loc.i20)}</span>
         </div>
         <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;border-top:0.5px solid #e8d870;padding-top:5px">
-          <span style="color:#888">Pop. growth '10–'20:</span><span style="color:${popChgColor};font-weight:500">${popChgStr}</span>
-          <span style="color:#888">Income growth:</span><span style="color:${incChgColor};font-weight:500">${incChgStr}</span>
-        </div>
-      `;
+          <span style="color:#888">Pop '10–'20:</span><span style="color:${pcol};font-weight:600">${pc}</span>
+          <span style="color:#888">Income:</span><span style="color:${icol};font-weight:600">${ic}</span>
+        </div>`;
       tt.style.display = 'block';
-      let left = px - 10;
-      let top = py - tt.offsetHeight - 14;
+      let left = px - 10, top = py - tt.offsetHeight - 14;
       const maxL = mr.width - tt.offsetWidth - 6;
       if (left > maxL) left = maxL;
       if (left < 4) left = 4;
       if (top < 4) top = py + 14;
-      tt.style.left = left + 'px';
-      tt.style.top = top + 'px';
+      tt.style.left = left+'px'; tt.style.top = top+'px';
     })
-    .on('mouseleave', function() {
-      circle.attr('r', 5);
-      tt.style.display = 'none';
-    });
+    .on('mouseleave touchend', function() { circle.attr('r',5); tt.style.display='none'; });
   });
+
+  // Init
+  rebuildYearList();
+  updateCount();
+
 }).catch(() => {
   document.getElementById('loading').textContent = 'Failed to load map. Please refresh.';
 });
 </script>
+</body>
+</html>

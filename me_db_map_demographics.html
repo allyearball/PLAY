@@ -1,0 +1,424 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#wrap { display: flex; gap: 0; align-items: flex-start; }
+#sidebar {
+  width: 200px; min-width: 200px;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 8px; padding: 10px 0;
+  font-size: 12px; color: var(--color-text-primary);
+  max-height: 580px; overflow-y: auto; flex-shrink: 0;
+}
+#sidebar-header { padding: 4px 12px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 4px; }
+#sidebar-header .sh-title { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.ctrl-row { display: flex; gap: 6px; }
+.ctrl-btn { flex: 1; font-size: 11px; padding: 4px 0; border: 0.5px solid var(--color-border-secondary); background: transparent; border-radius: 5px; cursor: pointer; color: var(--color-text-primary); }
+.ctrl-btn:hover { background: var(--color-background-secondary); }
+#filter-count { font-size: 11px; color: var(--color-text-secondary); margin-top: 7px; }
+.year-row { display: flex; align-items: center; gap: 7px; padding: 3px 12px; cursor: pointer; user-select: none; }
+.year-row:hover { background: var(--color-background-secondary); }
+.year-row input[type=checkbox] { width: 13px; height: 13px; cursor: pointer; accent-color: #1a3fa8; flex-shrink: 0; }
+.yr-label { flex: 1; font-size: 12px; }
+.yr-bar-wrap { width: 44px; height: 8px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.yr-bar { height: 100%; background: #1a3fa8; border-radius: 3px; opacity: 0.55; }
+.yr-count { width: 20px; text-align: right; font-size: 11px; color: var(--color-text-secondary); }
+#map-side { flex: 1; position: relative; min-width: 0; }
+#map-svg { width: 100%; height: auto; display: block; border-radius: 6px; }
+.state-fill { fill: #d6e4f0; stroke: #fff; stroke-width: 0.8; }
+.state-border { fill: none; stroke: #fff; stroke-width: 0.8; }
+#legend { display: flex; gap: 18px; padding: 8px 0 6px 2px; font-size: 12px; color: var(--color-text-secondary); align-items: center; }
+.ldot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; border: 1.5px solid rgba(0,0,0,0.12); }
+#tt {
+  display: none; position: absolute;
+  background: #fffde7; border: 1.5px solid #f0c040;
+  border-radius: 6px; padding: 11px 14px 10px;
+  min-width: 230px; font-size: 12px; line-height: 1.55; color: #222;
+  pointer-events: none; z-index: 100;
+}
+.tt-pin { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #f0c040; position: absolute; bottom: -9px; left: 16px; }
+.tt-brand { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
+.tt-city { font-weight: 500; font-size: 14px; margin-bottom: 1px; }
+.tt-addr { font-size: 11px; color: #666; margin-bottom: 6px; }
+.tt-divider { border: none; border-top: 0.5px solid #e8d870; margin: 5px 0; }
+.tt-grid { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 2px 8px; font-size: 11px; }
+.tt-gh { font-weight: 500; color: #555; text-align: right; padding-bottom: 2px; }
+.tt-gl { color: #888; }
+.tt-gv { text-align: right; color: #222; }
+.tt-row2 { display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; }
+.tt-label { color: #888; } .tt-val { font-weight: 500; }
+#loading { padding: 40px; text-align: center; color: var(--color-text-secondary); font-size: 13px; }
+</style>
+
+<h2 class="sr-only">Interactive US map of Main Event and Dave and Buster's locations with demographic data on hover.</h2>
+
+<div id="legend">
+  <span><span class="ldot" style="background:#1a3fa8;"></span>Main Event (65)</span>
+  <span><span class="ldot" style="background:#FF7043;"></span>Dave &amp; Buster's (182)</span>
+</div>
+<div id="wrap">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <div class="sh-title">Year opened</div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="btn-all">All</button>
+        <button class="ctrl-btn" id="btn-none">None</button>
+      </div>
+      <div id="filter-count"></div>
+    </div>
+    <div id="year-list"></div>
+  </div>
+  <div id="map-side">
+    <div id="loading">Loading map…</div>
+    <div id="tt"><div class="tt-pin"></div></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+const ME_COLOR = '#1a3fa8', DB_COLOR = '#FF7043';
+const fmt = n => n ? n.toLocaleString() : '—';
+const fmtD = n => n ? '$' + n.toLocaleString() : '—';
+
+const locations = [
+  {b:"ME",city:"Huntsville",state:"AL",addr:"6848 University Dr NW",sqft:"50,000",yr:2021,lat:34.70,lng:-86.68,p20:215006,p10:180105,p00:158216,i20:58000,i10:48000,i00:36000},
+  {b:"ME",city:"Avondale",state:"AZ",addr:"10315 W McDowell Rd",sqft:"58,000",yr:2017,lat:33.43,lng:-112.35,p20:89334,p10:76238,p00:35883,i20:65000,i10:58000,i00:43000},
+  {b:"ME",city:"Gilbert",state:"AZ",addr:"1735 S Santan Village Pkwy",sqft:"50,000",yr:2018,lat:33.31,lng:-111.79,p20:267918,p10:208453,p00:109697,i20:99000,i10:80000,i00:55000},
+  {b:"ME",city:"Tempe",state:"AZ",addr:"8545 S Emerald Dr",sqft:"58,000",yr:2014,lat:33.33,lng:-111.94,p20:180587,p10:161719,p00:158625,i20:61000,i10:48000,i00:42000},
+  {b:"ME",city:"Tucson",state:"AZ",addr:"4700 S Landing Way",sqft:"50,000",yr:2022,lat:32.17,lng:-110.93,p20:542629,p10:520116,p00:486699,i20:45000,i10:36000,i00:30000},
+  {b:"ME",city:"Little Rock",state:"AR",addr:"2616 S Shackleford Rd",sqft:"49,000",yr:2021,lat:34.72,lng:-92.42,p20:202591,p10:193524,p00:183133,i20:53000,i10:46000,i00:36000},
+  {b:"ME",city:"Montclair",state:"CA",addr:"9375 Monte Vista Ave",sqft:"55,000",yr:2018,lat:34.07,lng:-117.69,p20:37865,p10:36664,p00:33049,i20:71000,i10:54000,i00:40000},
+  {b:"ME",city:"Colorado Springs",state:"CO",addr:"6415 N Academy Blvd",sqft:"50,000",yr:2021,lat:38.94,lng:-104.76,p20:478961,p10:416427,p00:360890,i20:67000,i10:54000,i00:40000},
+  {b:"ME",city:"Highlands Ranch",state:"CO",addr:"64 W Orchard Rd",sqft:"52,000",yr:2019,lat:39.55,lng:-104.97,p20:103444,p10:96713,p00:70931,i20:124000,i10:104000,i00:84000},
+  {b:"ME",city:"Thornton",state:"CO",addr:"14300 Lincoln St",sqft:"50,000",yr:2022,lat:39.91,lng:-104.95,p20:141867,p10:118772,p00:82384,i20:81000,i10:65000,i00:54000},
+  {b:"ME",city:"Windsor",state:"CO",addr:"8235 Crossroads Blvd",sqft:"50,000",yr:2023,lat:40.48,lng:-104.90,p20:32716,p10:18644,p00:9896,i20:104000,i10:77000,i00:53000},
+  {b:"ME",city:"Newark",state:"DE",addr:"2900 Fashion Center Blvd",sqft:"53,000",yr:2018,lat:39.68,lng:-75.75,p20:30601,p10:31454,p00:28547,i20:61000,i10:51000,i00:40000},
+  {b:"ME",city:"Jacksonville",state:"FL",addr:"10370 Philips Hwy",sqft:"49,000",yr:2017,lat:30.21,lng:-81.55,p20:949611,p10:821784,p00:735617,i20:55000,i10:48000,i00:34000},
+  {b:"ME",city:"Orlando",state:"FL",addr:"9101 International Dr",sqft:"48,000",yr:2016,lat:28.43,lng:-81.47,p20:307573,p10:238300,p00:185951,i20:58000,i10:42000,i00:35000},
+  {b:"ME",city:"Wesley Chapel",state:"FL",addr:"2839 Creek Grass Way",sqft:"50,000",yr:2020,lat:28.24,lng:-82.33,p20:64866,p10:44092,p00:14000,i20:86000,i10:70000,i00:50000},
+  {b:"ME",city:"Alpharetta",state:"GA",addr:"10700 Davis Dr",sqft:"50,000",yr:2015,lat:34.07,lng:-84.29,p20:65818,p10:57551,p00:34854,i20:120000,i10:92000,i00:71000},
+  {b:"ME",city:"Atlanta",state:"GA",addr:"3101 Cobb Pkwy SE",sqft:"56,000",yr:2015,lat:33.87,lng:-84.47,p20:498715,p10:420003,p00:416474,i20:64000,i10:46000,i00:34000},
+  {b:"ME",city:"Suwanee",state:"GA",addr:"4790 Sugarloaf Pkwy",sqft:"50,000",yr:2016,lat:34.05,lng:-84.07,p20:20786,p10:15355,p00:8725,i20:93000,i10:82000,i00:64000},
+  {b:"ME",city:"Hoffman Estates",state:"IL",addr:"2575 Pratum Ave",sqft:"63,000",yr:2016,lat:42.06,lng:-88.08,p20:52530,p10:51895,p00:49495,i20:90000,i10:74000,i00:60000},
+  {b:"ME",city:"Warrenville",state:"IL",addr:"28248 Diehl Rd",sqft:"60,000",yr:2014,lat:41.82,lng:-88.19,p20:13553,p10:13140,p00:13363,i20:91000,i10:74000,i00:63000},
+  {b:"ME",city:"Olathe",state:"KS",addr:"11950 S Kansas City Rd",sqft:"50,000",yr:2017,lat:38.88,lng:-94.82,p20:141290,p10:125872,p00:92962,i20:90000,i10:75000,i00:61000},
+  {b:"ME",city:"Lexington",state:"KY",addr:"2400 Richmond Rd",sqft:"50,000",yr:2022,lat:38.00,lng:-84.47,p20:322570,p10:295803,p00:260512,i20:57000,i10:47000,i00:39000},
+  {b:"ME",city:"Louisville",state:"KY",addr:"12500 Sycamore Station Pl",sqft:"50,000",yr:2016,lat:38.23,lng:-85.56,p20:633045,p10:597337,p00:256231,i20:54000,i10:44000,i00:28000},
+  {b:"ME",city:"Baton Rouge",state:"LA",addr:"6401 Bluebonnet Blvd",sqft:"50,000",yr:2020,lat:30.38,lng:-91.09,p20:227470,p10:229493,p00:227818,i20:44000,i10:38000,i00:30000},
+  {b:"ME",city:"Columbia",state:"MD",addr:"10300 Little Patuxent Pkwy",sqft:"52,000",yr:2018,lat:39.22,lng:-76.85,p20:104681,p10:99615,p00:88254,i20:108000,i10:94000,i00:70000},
+  {b:"ME",city:"Grand Rapids",state:"MI",addr:"3800 28th St SE",sqft:"50,000",yr:2023,lat:42.89,lng:-85.65,p20:198917,p10:188040,p00:197800,i20:51000,i10:38000,i00:37000},
+  {b:"ME",city:"Taylor",state:"MI",addr:"23400 Allen Rd",sqft:"50,000",yr:2024,lat:42.23,lng:-83.27,p20:63409,p10:63131,p00:65868,i20:53000,i10:43000,i00:42000},
+  {b:"ME",city:"Chesterfield",state:"MO",addr:"17021 Chesterfield Airport Rd",sqft:"49,000",yr:2021,lat:38.66,lng:-90.58,p20:49999,p10:47484,p00:46802,i20:116000,i10:93000,i00:75000},
+  {b:"ME",city:"Independence",state:"MO",addr:"4600 S Cochise Ct",sqft:"50,000",yr:2016,lat:39.07,lng:-94.36,p20:123011,p10:116830,p00:113288,i20:50000,i10:43000,i00:37000},
+  {b:"ME",city:"Kansas City",state:"MO",addr:"8081 NW Roanoke Rd",sqft:"50,000",yr:2017,lat:39.20,lng:-94.68,p20:508090,p10:459787,p00:441545,i20:56000,i10:45000,i00:37000},
+  {b:"ME",city:"Albuquerque",state:"NM",addr:"4040 Pan American Fwy NE",sqft:"49,000",yr:2016,lat:35.11,lng:-106.60,p20:564559,p10:545852,p00:448607,i20:53000,i10:46000,i00:38000},
+  {b:"ME",city:"Deer Park",state:"NY",addr:"1150 The Arches Circle",sqft:"46,000",yr:2023,lat:40.76,lng:-73.32,p20:28881,p10:27745,p00:28349,i20:105000,i10:84000,i00:64000},
+  {b:"ME",city:"Fayetteville",state:"NC",addr:"5000 Morganton Rd",sqft:"50,000",yr:2024,lat:35.05,lng:-78.97,p20:208501,p10:200564,p00:121015,i20:47000,i10:43000,i00:36000},
+  {b:"ME",city:"Greensboro",state:"NC",addr:"1414 Stanley Rd",sqft:"50,000",yr:2025,lat:36.07,lng:-79.79,p20:299035,p10:269666,p00:223891,i20:51000,i10:41000,i00:39000},
+  {b:"ME",city:"Avon",state:"OH",addr:"35600 Chester Rd",sqft:"50,000",yr:2019,lat:41.45,lng:-82.04,p20:24847,p10:21193,p00:11446,i20:111000,i10:89000,i00:64000},
+  {b:"ME",city:"West Chester",state:"OH",addr:"9477 Centre Pointe Dr",sqft:"50,000",yr:2016,lat:39.35,lng:-84.43,p20:64830,p10:60958,p00:54895,i20:98000,i10:76000,i00:58000},
+  {b:"ME",city:"Norman",state:"OK",addr:"2008 24th Ave NW",sqft:"50,000",yr:2017,lat:35.22,lng:-97.44,p20:128026,p10:110925,p00:95694,i20:58000,i10:47000,i00:36000},
+  {b:"ME",city:"Oklahoma City",state:"OK",addr:"1441 W Memorial Rd",sqft:"55,000",yr:2015,lat:35.66,lng:-97.57,p20:681054,p10:579999,p00:506132,i20:56000,i10:45000,i00:34000},
+  {b:"ME",city:"Tulsa",state:"OK",addr:"7848 S Olympia Ave",sqft:"50,000",yr:2016,lat:36.01,lng:-96.02,p20:413066,p10:391906,p00:393049,i20:49000,i10:40000,i00:35000},
+  {b:"ME",city:"Greenville",state:"SC",addr:"1025 Woodruff Rd",sqft:"50,000",yr:2021,lat:34.83,lng:-82.33,p20:70720,p10:58409,p00:56002,i20:57000,i10:41000,i00:33000},
+  {b:"ME",city:"Knoxville",state:"TN",addr:"9081 Kingston Pike",sqft:"50,000",yr:2018,lat:35.92,lng:-84.09,p20:190740,p10:178874,p00:173890,i20:41000,i10:32000,i00:27000},
+  {b:"ME",city:"Memphis",state:"TN",addr:"7219 Appling Farms Pkwy",sqft:"50,000",yr:2016,lat:35.16,lng:-89.88,p20:633104,p10:646889,p00:650100,i20:41000,i10:35000,i00:32000},
+  {b:"ME",city:"Amarillo",state:"TX",addr:"8958 Soncy Rd",sqft:"50,000",yr:2022,lat:35.21,lng:-101.99,p20:200393,p10:190695,p00:173627,i20:55000,i10:44000,i00:34000},
+  {b:"ME",city:"Austin",state:"TX",addr:"13301 N US Hwy 183",sqft:"75,000",yr:1998,lat:30.45,lng:-97.77,p20:961855,p10:790390,p00:656562,i20:75000,i10:52000,i00:42000},
+  {b:"ME",city:"Brownsville",state:"TX",addr:"2350 N Expressway",sqft:"50,000",yr:2023,lat:25.94,lng:-97.49,p20:186738,p10:175023,p00:139722,i20:40000,i10:30000,i00:24000},
+  {b:"ME",city:"Corpus Christi",state:"TX",addr:"4701 S Padre Island Dr",sqft:"50,000",yr:2024,lat:27.72,lng:-97.39,p20:317863,p10:305215,p00:277454,i20:57000,i10:48000,i00:36000},
+  {b:"ME",city:"Dallas",state:"TX",addr:"13301 Central Expressway",sqft:"72,000",yr:2002,lat:32.92,lng:-96.77,p20:1304379,p10:1197816,p00:1188580,i20:54000,i10:42000,i00:37000},
+  {b:"ME",city:"El Paso",state:"TX",addr:"6495 Gateway Blvd W",sqft:"50,000",yr:2022,lat:31.80,lng:-106.43,p20:678815,p10:649121,p00:563662,i20:48000,i10:39000,i00:32000},
+  {b:"ME",city:"Fort Worth North",state:"TX",addr:"2601 North Tarrant Pkwy",sqft:"50,000",yr:2013,lat:32.93,lng:-97.37,p20:918915,p10:741206,p00:534694,i20:62000,i10:50000,i00:37000},
+  {b:"ME",city:"Fort Worth South",state:"TX",addr:"4801 Citylake Blvd E",sqft:"55,000",yr:2008,lat:32.67,lng:-97.39,p20:918915,p10:741206,p00:534694,i20:62000,i10:50000,i00:37000},
+  {b:"ME",city:"Frisco",state:"TX",addr:"14436 Preston Rd",sqft:"64,000",yr:2008,lat:33.12,lng:-96.82,p20:200509,p10:116989,p00:33714,i20:128000,i10:105000,i00:80000},
+  {b:"ME",city:"Grand Prairie",state:"TX",addr:"3106 S State Hwy 161",sqft:"50,000",yr:2019,lat:32.69,lng:-97.05,p20:196100,p10:175396,p00:127427,i20:71000,i10:54000,i00:46000},
+  {b:"ME",city:"Grapevine",state:"TX",addr:"407 W State Hwy 114",sqft:"55,000",yr:2001,lat:32.91,lng:-97.07,p20:50631,p10:46334,p00:42059,i20:93000,i10:73000,i00:59000},
+  {b:"ME",city:"Humble",state:"TX",addr:"20945 Hwy 59 N",sqft:"50,000",yr:2018,lat:29.99,lng:-95.24,p20:16795,p10:15133,p00:14579,i20:52000,i10:58000,i00:45000},
+  {b:"ME",city:"Katy",state:"TX",addr:"24401 Katy Fwy",sqft:"54,000",yr:2013,lat:29.78,lng:-95.82,p20:21894,p10:14102,p00:11775,i20:83000,i10:65000,i00:54000},
+  {b:"ME",city:"Laredo",state:"TX",addr:"5402 San Bernardo Ave",sqft:"50,000",yr:2020,lat:27.56,lng:-99.49,p20:255205,p10:236091,p00:176576,i20:46000,i10:38000,i00:28000},
+  {b:"ME",city:"Longview",state:"TX",addr:"3106 Junction Rd",sqft:"50,000",yr:2025,lat:32.50,lng:-94.74,p20:81638,p10:80455,p00:73344,i20:51000,i10:42000,i00:33000},
+  {b:"ME",city:"Lubbock",state:"TX",addr:"6010 Marsha Sharp Fwy",sqft:"50,000",yr:2015,lat:33.54,lng:-101.94,p20:257141,p10:229573,p00:199564,i20:52000,i10:43000,i00:31000},
+  {b:"ME",city:"Pharr",state:"TX",addr:"500 N Jackson Rd",sqft:"50,000",yr:2016,lat:26.19,lng:-98.19,p20:79715,p10:70400,p00:46660,i20:41000,i10:34000,i00:26000},
+  {b:"ME",city:"Plano",state:"TX",addr:"3941 Central Expressway",sqft:"65,000",yr:2000,lat:33.01,lng:-96.71,p20:285494,p10:259841,p00:222030,i20:96000,i10:82000,i00:71000},
+  {b:"ME",city:"San Antonio North",state:"TX",addr:"1911 N Loop 1604 E",sqft:"65,000",yr:2010,lat:29.63,lng:-98.43,p20:1434625,p10:1327407,p00:1144646,i20:53000,i10:43000,i00:36000},
+  {b:"ME",city:"San Antonio West",state:"TX",addr:"8702 State Hwy 151",sqft:"50,000",yr:2013,lat:29.45,lng:-98.70,p20:1434625,p10:1327407,p00:1144646,i20:53000,i10:43000,i00:36000},
+  {b:"ME",city:"Stafford",state:"TX",addr:"12626 Fountain Lake Circle",sqft:"50,000",yr:2006,lat:29.60,lng:-95.56,p20:17666,p10:15681,p00:15681,i20:70000,i10:60000,i00:56000},
+  {b:"ME",city:"Waco",state:"TX",addr:"300 Target Way",sqft:"45,000",yr:2021,lat:31.55,lng:-97.15,p20:138486,p10:124805,p00:113726,i20:42000,i10:32000,i00:26000},
+  {b:"ME",city:"Webster",state:"TX",addr:"1125 NASA Parkway",sqft:"58,000",yr:2006,lat:29.54,lng:-95.12,p20:11451,p10:10400,p00:9083,i20:66000,i10:57000,i00:45000},
+  {b:"ME",city:"Riverdale",state:"UT",addr:"4051 S Riverdale Rd",sqft:"50,000",yr:2024,lat:41.18,lng:-112.01,p20:9343,p10:8426,p00:7656,i20:70000,i10:58000,i00:48000},
+  {b:"DB",city:"Anchorage",state:"AK",addr:"800 E Dimond Blvd",sqft:"34,000",yr:2018,lat:61.15,lng:-149.87,p20:291247,p10:291826,p00:260283,i20:84000,i10:73000,i00:55000},
+  {b:"DB",city:"Birmingham",state:"AL",addr:"5062 Pinnacle Square",sqft:"40,000",yr:2018,lat:33.42,lng:-86.72,p20:200733,p10:212237,p00:242820,i20:38000,i10:31000,i00:24000},
+  {b:"DB",city:"Auburn",state:"AL",addr:"2416 Capps Way",sqft:"30,000",yr:2021,lat:32.61,lng:-85.49,p20:76143,p10:53380,p00:42987,i20:48000,i10:35000,i00:25000},
+  {b:"DB",city:"Glendale",state:"AZ",addr:"9460 W Hanna Dr",sqft:"40,000",yr:2015,lat:33.51,lng:-112.27,p20:248325,p10:226721,p00:218812,i20:57000,i10:51000,i00:45000},
+  {b:"DB",city:"Phoenix",state:"AZ",addr:"21001 N Tatum Blvd",sqft:"45,000",yr:2002,lat:33.69,lng:-111.98,p20:1608139,p10:1445632,p00:1321045,i20:60000,i10:47000,i00:41000},
+  {b:"DB",city:"Tempe",state:"AZ",addr:"2000 E Rio Salado Pkwy",sqft:"60,000",yr:2008,lat:33.43,lng:-111.90,p20:180587,p10:161719,p00:158625,i20:61000,i10:48000,i00:42000},
+  {b:"DB",city:"Tucson",state:"AZ",addr:"1390 E Tucson Marketplace",sqft:"32,000",yr:2017,lat:32.22,lng:-110.88,p20:542629,p10:520116,p00:486699,i20:45000,i10:36000,i00:30000},
+  {b:"DB",city:"Little Rock",state:"AR",addr:"10900 Financial Centre Pkwy",sqft:"35,000",yr:2016,lat:34.75,lng:-92.33,p20:202591,p10:193524,p00:183133,i20:53000,i10:46000,i00:36000},
+  {b:"DB",city:"Arcadia",state:"CA",addr:"400 S Baldwin Ave",sqft:"36,000",yr:2017,lat:34.14,lng:-118.05,p20:56681,p10:56364,p00:53054,i20:95000,i10:75000,i00:60000},
+  {b:"DB",city:"Bakersfield",state:"CA",addr:"3300 Empire Dr",sqft:"30,000",yr:2022,lat:35.38,lng:-119.04,p20:403455,p10:347483,p00:247057,i20:63000,i10:53000,i00:39000},
+  {b:"DB",city:"Carlsbad",state:"CA",addr:"2525 El Camino Real",sqft:"38,000",yr:2017,lat:33.16,lng:-117.35,p20:114746,p10:105328,p00:78247,i20:110000,i10:85000,i00:64000},
+  {b:"DB",city:"Concord",state:"CA",addr:"1975 Diamond Blvd",sqft:"41,000",yr:2020,lat:37.99,lng:-122.03,p20:125410,p10:122067,p00:121780,i20:88000,i10:67000,i00:52000},
+  {b:"DB",city:"Daly City",state:"CA",addr:"321 Gellert Blvd",sqft:"42,000",yr:2017,lat:37.68,lng:-122.47,p20:104901,p10:101123,p00:103621,i20:95000,i10:71000,i00:53000},
+  {b:"DB",city:"Fresno",state:"CA",addr:"2125 E Shaw Ave",sqft:"33,000",yr:2016,lat:36.79,lng:-119.74,p20:542107,p10:494665,p00:427652,i20:53000,i10:41000,i00:32000},
+  {b:"DB",city:"Hollywood",state:"CA",addr:"6801 Hollywood Blvd",sqft:"40,000",yr:2014,lat:34.10,lng:-118.33,p20:3898747,p10:3792621,p00:3694820,i20:65000,i10:49000,i00:36000},
+  {b:"DB",city:"Irvine",state:"CA",addr:"661 Spectrum Center Dr",sqft:"42,000",yr:2006,lat:33.65,lng:-117.74,p20:307670,p10:212375,p00:143072,i20:108000,i10:85000,i00:72000},
+  {b:"DB",city:"Long Beach",state:"CA",addr:"7575 Carson Blvd",sqft:"37,000",yr:2021,lat:33.83,lng:-118.12,p20:466742,p10:462257,p00:461522,i20:66000,i10:52000,i00:37000},
+  {b:"DB",city:"Los Angeles",state:"CA",addr:"6081 Center Dr",sqft:"41,000",yr:2016,lat:33.97,lng:-118.39,p20:3898747,p10:3792621,p00:3694820,i20:65000,i10:49000,i00:36000},
+  {b:"DB",city:"Milpitas",state:"CA",addr:"940 Great Mall Dr",sqft:"53,000",yr:2001,lat:37.43,lng:-121.90,p20:80273,p10:66790,p00:62698,i20:128000,i10:93000,i00:68000},
+  {b:"DB",city:"Northridge",state:"CA",addr:"9301 Tampa Ave",sqft:"40,000",yr:2019,lat:34.23,lng:-118.55,p20:3898747,p10:3792621,p00:3694820,i20:65000,i10:49000,i00:36000},
+  {b:"DB",city:"Ontario",state:"CA",addr:"4810 Ontario Mills Pkwy",sqft:"58,000",yr:1998,lat:34.06,lng:-117.55,p20:175265,p10:163924,p00:158007,i20:65000,i10:53000,i00:42000},
+  {b:"DB",city:"Orange",state:"CA",addr:"20 City Blvd W",sqft:"50,000",yr:1999,lat:33.79,lng:-117.88,p20:139911,p10:136416,p00:128821,i20:95000,i10:75000,i00:58000},
+  {b:"DB",city:"Roseville",state:"CA",addr:"1174 Galleria Blvd",sqft:"33,000",yr:2016,lat:38.76,lng:-121.30,p20:147773,p10:118788,p00:79921,i20:95000,i10:72000,i00:57000},
+  {b:"DB",city:"Sacramento",state:"CA",addr:"1174 Galleria Blvd",sqft:"35,000",yr:2017,lat:38.58,lng:-121.49,p20:524943,p10:466488,p00:407018,i20:65000,i10:50000,i00:37000},
+  {b:"DB",city:"San Diego",state:"CA",addr:"2931 Camino Del Rio N",sqft:"40,000",yr:2001,lat:32.77,lng:-117.12,p20:1386932,p10:1307402,p00:1223400,i20:83000,i10:63000,i00:46000},
+  {b:"DB",city:"Torrance",state:"CA",addr:"21880 Hawthorne Blvd",sqft:"40,000",yr:2019,lat:33.83,lng:-118.34,p20:147067,p10:145438,p00:137946,i20:96000,i10:75000,i00:56000},
+  {b:"DB",city:"Westminster",state:"CA",addr:"1025 Westminster Mall",sqft:"42,000",yr:2018,lat:33.75,lng:-117.99,p20:90911,p10:89701,p00:88207,i20:66000,i10:55000,i00:43000},
+  {b:"DB",city:"Denver",state:"CO",addr:"2000 S Colorado Blvd",sqft:"60,000",yr:1998,lat:39.68,lng:-104.94,p20:715522,p10:600158,p00:554636,i20:72000,i10:45000,i00:39000},
+  {b:"DB",city:"Westminster",state:"CO",addr:"10667 Westminster Blvd",sqft:"40,000",yr:2001,lat:39.90,lng:-105.04,p20:116317,p10:106114,p00:100940,i20:78000,i10:64000,i00:56000},
+  {b:"DB",city:"Manchester",state:"CT",addr:"100 Buckland Hills Dr",sqft:"38,000",yr:2016,lat:41.79,lng:-72.52,p20:59713,p10:58241,p00:54740,i20:75000,i10:63000,i00:49000},
+  {b:"DB",city:"Milford",state:"CT",addr:"1201 Boston Post Rd",sqft:"35,000",yr:2018,lat:41.24,lng:-73.06,p20:52044,p10:52759,p00:52305,i20:92000,i10:77000,i00:61000},
+  {b:"DB",city:"Brandon",state:"FL",addr:"1024 Brandon Town Center Dr",sqft:"40,000",yr:2018,lat:27.94,lng:-82.29,p20:114626,p10:103483,p00:77895,i20:64000,i10:54000,i00:48000},
+  {b:"DB",city:"Fort Myers",state:"FL",addr:"13499 S Cleveland Ave",sqft:"40,000",yr:2019,lat:26.52,lng:-81.87,p20:86395,p10:62298,p00:48208,i20:48000,i10:37000,i00:28000},
+  {b:"DB",city:"Gainesville",state:"FL",addr:"3023 SW 45th St",sqft:"30,000",yr:2021,lat:29.65,lng:-82.39,p20:141085,p10:124354,p00:95447,i20:38000,i10:31000,i00:26000},
+  {b:"DB",city:"Hollywood",state:"FL",addr:"3000 Oakwood Blvd",sqft:"46,000",yr:1999,lat:26.02,lng:-80.17,p20:153067,p10:140768,p00:139357,i20:55000,i10:45000,i00:36000},
+  {b:"DB",city:"Jacksonville",state:"FL",addr:"7025 Salisbury Rd",sqft:"44,000",yr:1999,lat:30.28,lng:-81.61,p20:949611,p10:821784,p00:735617,i20:55000,i10:48000,i00:34000},
+  {b:"DB",city:"Miami",state:"FL",addr:"11401 NW 12th St",sqft:"60,000",yr:2001,lat:25.79,lng:-80.37,p20:442241,p10:399457,p00:362470,i20:44000,i10:30000,i00:23000},
+  {b:"DB",city:"Orlando",state:"FL",addr:"8986 International Dr",sqft:"40,200",yr:2011,lat:28.44,lng:-81.46,p20:307573,p10:238300,p00:185951,i20:58000,i10:42000,i00:35000},
+  {b:"DB",city:"Panama City Beach",state:"FL",addr:"15701 L C Hilton Jr. Dr",sqft:"34,000",yr:2014,lat:30.18,lng:-85.66,p20:18094,p10:12018,p00:7671,i20:75000,i10:54000,i00:41000},
+  {b:"DB",city:"Tampa",state:"FL",addr:"10251 Estuary Lakes Dr",sqft:"42,000",yr:2017,lat:27.97,lng:-82.40,p20:384959,p10:335709,p00:303447,i20:55000,i10:44000,i00:34000},
+  {b:"DB",city:"Alpharetta",state:"GA",addr:"650 North Point Dr",sqft:"40,000",yr:2016,lat:34.08,lng:-84.27,p20:65818,p10:57551,p00:34854,i20:120000,i10:92000,i00:71000},
+  {b:"DB",city:"Lawrenceville",state:"GA",addr:"5900 Sugarloaf Pkwy",sqft:"40,000",yr:2000,lat:33.96,lng:-83.99,p20:30629,p10:28546,p00:22397,i20:55000,i10:41000,i00:40000},
+  {b:"DB",city:"Marietta",state:"GA",addr:"640 Powers Ferry Rd",sqft:"54,000",yr:1993,lat:33.95,lng:-84.52,p20:60972,p10:56579,p00:58748,i20:60000,i10:42000,i00:40000},
+  {b:"DB",city:"Honolulu",state:"HI",addr:"1030 Auahi St",sqft:"36,000",yr:2001,lat:21.30,lng:-157.86,p20:350964,p10:337256,p00:371657,i20:72000,i10:58000,i00:45000},
+  {b:"DB",city:"Addison",state:"IL",addr:"1155 W Army Trail Rd",sqft:"45,000",yr:1998,lat:41.94,lng:-88.00,p20:35702,p10:36942,p00:35914,i20:68000,i10:55000,i00:49000},
+  {b:"DB",city:"Chicago",state:"IL",addr:"1030 N Clark St",sqft:"46,000",yr:1999,lat:41.90,lng:-87.63,p20:2746388,p10:2695598,p00:2896016,i20:62000,i10:47000,i00:38000},
+  {b:"DB",city:"Orland Park",state:"IL",addr:"49 Orland Square Dr",sqft:"40,000",yr:2016,lat:41.62,lng:-87.85,p20:58703,p10:56767,p00:51077,i20:92000,i10:76000,i00:64000},
+  {b:"DB",city:"Rosemont",state:"IL",addr:"7021 Mannheim Rd",sqft:"40,000",yr:2019,lat:41.99,lng:-87.88,p20:3952,p10:4202,p00:4224,i20:52000,i10:41000,i00:34000},
+  {b:"DB",city:"Vernon Hills",state:"IL",addr:"424 Hawthorn Center",sqft:"38,000",yr:2015,lat:42.22,lng:-87.97,p20:26850,p10:25113,p00:20120,i20:105000,i10:88000,i00:75000},
+  {b:"DB",city:"Indianapolis",state:"IN",addr:"8350 Castleton Corner Dr",sqft:"48,000",yr:2005,lat:39.92,lng:-86.02,p20:887642,p10:820445,p00:791926,i20:50000,i10:40000,i00:40000},
+  {b:"DB",city:"Greenwood",state:"IN",addr:"1251 US Hwy 31 N",sqft:"30,000",yr:2020,lat:39.61,lng:-86.11,p20:63830,p10:49791,p00:36037,i20:64000,i10:52000,i00:46000},
+  {b:"DB",city:"Des Moines",state:"IA",addr:"1195 SE Jordan Creek Pkwy",sqft:"30,000",yr:2022,lat:41.57,lng:-93.71,p20:214133,p10:203433,p00:198682,i20:54000,i10:45000,i00:38000},
+  {b:"DB",city:"Kansas City",state:"KS",addr:"1843 Village West Pkwy",sqft:"42,000",yr:2017,lat:39.13,lng:-94.84,p20:156607,p10:145786,p00:146866,i20:47000,i10:38000,i00:33000},
+  {b:"DB",city:"Wichita",state:"KS",addr:"2644 N Greenwich Rd",sqft:"30,000",yr:2019,lat:37.75,lng:-97.25,p20:397532,p10:382368,p00:344284,i20:53000,i10:45000,i00:39000},
+  {b:"DB",city:"Florence",state:"KY",addr:"781 Heights Blvd",sqft:"30,000",yr:2017,lat:38.98,lng:-84.63,p20:31946,p10:29951,p00:23551,i20:60000,i10:48000,i00:42000},
+  {b:"DB",city:"New Orleans",state:"LA",addr:"1200 Poydras St",sqft:"32,000",yr:2017,lat:29.94,lng:-90.07,p20:383997,p10:343829,p00:484674,i20:45000,i10:37000,i00:27000},
+  {b:"DB",city:"Lafayette",state:"LA",addr:"201 Spring St",sqft:"30,000",yr:2023,lat:30.21,lng:-92.02,p20:121374,p10:120623,p00:110257,i20:54000,i10:43000,i00:35000},
+  {b:"DB",city:"Portland",state:"ME",addr:"360 County Rd",sqft:"30,000",yr:2024,lat:43.66,lng:-70.26,p20:68408,p10:66194,p00:64249,i20:61000,i10:43000,i00:35000},
+  {b:"DB",city:"Capitol Heights",state:"MD",addr:"1616 Ritchie Station Ct",sqft:"40,000",yr:2016,lat:38.87,lng:-76.90,p20:4050,p10:4337,p00:4138,i20:62000,i10:54000,i00:46000},
+  {b:"DB",city:"Hanover",state:"MD",addr:"7000 Arundel Mills Circle",sqft:"58,000",yr:2000,lat:39.18,lng:-76.73,p20:17219,p10:12952,p00:6554,i20:105000,i10:88000,i00:62000},
+  {b:"DB",city:"Silver Spring",state:"MD",addr:"8661 Colesville Rd",sqft:"41,000",yr:2017,lat:38.99,lng:-77.03,p20:81015,p10:71452,p00:76540,i20:88000,i10:71000,i00:51000},
+  {b:"DB",city:"White Marsh",state:"MD",addr:"8200 Perry Hall Blvd",sqft:"40,000",yr:2018,lat:39.38,lng:-76.48,p20:10287,p10:9513,p00:8485,i20:85000,i10:70000,i00:53000},
+  {b:"DB",city:"Braintree",state:"MA",addr:"250 Granite St",sqft:"40,000",yr:2012,lat:42.22,lng:-71.00,p20:39143,p10:35744,p00:33828,i20:98000,i10:78000,i00:55000},
+  {b:"DB",city:"Natick",state:"MA",addr:"1245 Worcester St",sqft:"42,000",yr:2019,lat:42.28,lng:-71.37,p20:37006,p10:33006,p00:32170,i20:118000,i10:91000,i00:65000},
+  {b:"DB",city:"Woburn",state:"MA",addr:"101 Middlesex Turnpike",sqft:"37,000",yr:2016,lat:42.50,lng:-71.17,p20:40876,p10:38120,p00:37258,i20:95000,i10:70000,i00:54000},
+  {b:"DB",city:"Grand Rapids",state:"MI",addr:"3660 28th St SE",sqft:"38,000",yr:2017,lat:42.88,lng:-85.64,p20:198917,p10:188040,p00:197800,i20:51000,i10:38000,i00:37000},
+  {b:"DB",city:"Livonia",state:"MI",addr:"19375 Victor Parkway",sqft:"45,000",yr:2016,lat:42.39,lng:-83.39,p20:95535,p10:96942,p00:100545,i20:80000,i10:65000,i00:53000},
+  {b:"DB",city:"Utica",state:"MI",addr:"45511 Park Ave",sqft:"42,000",yr:1999,lat:42.63,lng:-83.03,p20:5245,p10:4757,p00:4547,i20:52000,i10:39000,i00:33000},
+  {b:"DB",city:"Edina",state:"MN",addr:"3241 Southdale Center",sqft:"41,000",yr:2015,lat:44.88,lng:-93.33,p20:53494,p10:47941,p00:47425,i20:108000,i10:84000,i00:66000},
+  {b:"DB",city:"Maple Grove",state:"MN",addr:"11549 Fountains Dr",sqft:"40,000",yr:2015,lat:45.09,lng:-93.46,p20:70253,p10:61567,p00:50365,i20:112000,i10:86000,i00:76000},
+  {b:"DB",city:"Biloxi",state:"MS",addr:"151 Beach Blvd",sqft:"35,000",yr:2024,lat:30.39,lng:-89.03,p20:49449,p10:44054,p00:50644,i20:45000,i10:39000,i00:34000},
+  {b:"DB",city:"St. Louis",state:"MO",addr:"13857 Riverport Dr",sqft:"54,000",yr:1999,lat:38.74,lng:-90.42,p20:301578,p10:319294,p00:348189,i20:45000,i10:34000,i00:27000},
+  {b:"DB",city:"Omaha",state:"NE",addr:"2502 S 133rd Plaza",sqft:"35,000",yr:2016,lat:41.22,lng:-96.11,p20:486051,p10:408958,p00:390007,i20:62000,i10:47000,i00:40000},
+  {b:"DB",city:"Henderson",state:"NV",addr:"1300 W Sunset Rd",sqft:"35,000",yr:2025,lat:36.03,lng:-115.10,p20:317610,p10:257729,p00:175381,i20:75000,i10:63000,i00:55000},
+  {b:"DB",city:"Las Vegas",state:"NV",addr:"2131 Park Centre Dr",sqft:"38,000",yr:2016,lat:36.09,lng:-115.17,p20:641903,p10:583756,p00:478434,i20:58000,i10:49000,i00:44000},
+  {b:"DB",city:"Gloucester",state:"NJ",addr:"200 Premium Outlets Dr",sqft:"40,000",yr:2021,lat:39.69,lng:-75.11,p20:66034,p10:64634,p00:64350,i20:85000,i10:68000,i00:54000},
+  {b:"DB",city:"Wayne",state:"NJ",addr:"310 Willowbrook Mall",sqft:"45,000",yr:2018,lat:40.90,lng:-74.26,p20:54838,p10:54717,p00:54069,i20:120000,i10:100000,i00:77000},
+  {b:"DB",city:"Woodbridge",state:"NJ",addr:"274 Woodbridge Center Dr",sqft:"42,000",yr:2017,lat:40.56,lng:-74.29,p20:103639,p10:99585,p00:97203,i20:98000,i10:78000,i00:60000},
+  {b:"DB",city:"Albany",state:"NY",addr:"120 Washington Ave",sqft:"40,000",yr:2014,lat:42.65,lng:-73.75,p20:99224,p10:97856,p00:95658,i20:48000,i10:38000,i00:30000},
+  {b:"DB",city:"Brooklyn (Gateway)",state:"NY",addr:"395 Gateway Drive",sqft:"40,000",yr:2021,lat:40.65,lng:-73.91,p20:2736074,p10:2504700,p00:2465326,i20:63000,i10:42000,i00:32000},
+  {b:"DB",city:"Brooklyn (Atlantic)",state:"NY",addr:"625 Atlantic Ave",sqft:"36,000",yr:2023,lat:40.68,lng:-73.97,p20:2736074,p10:2504700,p00:2465326,i20:63000,i10:42000,i00:32000},
+  {b:"DB",city:"Buffalo",state:"NY",addr:"1 Galleria Dr",sqft:"45,000",yr:2014,lat:42.85,lng:-78.73,p20:278349,p10:261310,p00:292648,i20:39000,i10:30000,i00:24000},
+  {b:"DB",city:"Massapequa",state:"NY",addr:"1 Sunrise Mall",sqft:"38,000",yr:2018,lat:40.67,lng:-73.47,p20:21355,p10:21659,p00:22652,i20:125000,i10:105000,i00:77000},
+  {b:"DB",city:"New York City",state:"NY",addr:"234 W 42nd St",sqft:"31,500",yr:2000,lat:40.76,lng:-74.00,p20:8804190,p10:8175133,p00:8008278,i20:67000,i10:50000,i00:38000},
+  {b:"DB",city:"Pelham Manor",state:"NY",addr:"881 Pelham Parkway",sqft:"40,000",yr:2015,lat:40.91,lng:-73.80,p20:5556,p10:5486,p00:5443,i20:150000,i10:120000,i00:95000},
+  {b:"DB",city:"Rochester",state:"NY",addr:"1575 Marketplace Dr",sqft:"40,000",yr:2017,lat:43.09,lng:-77.55,p20:211328,p10:210565,p00:219773,i20:37000,i10:30000,i00:27000},
+  {b:"DB",city:"Staten Island",state:"NY",addr:"2655 Richmond Ave",sqft:"42,000",yr:2019,lat:40.58,lng:-74.15,p20:495747,p10:468730,p00:443728,i20:85000,i10:70000,i00:55000},
+  {b:"DB",city:"Syracuse",state:"NY",addr:"9090 Destiny USA Dr",sqft:"40,000",yr:2013,lat:43.04,lng:-76.14,p20:148620,p10:145170,p00:147306,i20:38000,i10:31000,i00:25000},
+  {b:"DB",city:"West Nyack",state:"NY",addr:"4661 Palisades Center Dr",sqft:"48,000",yr:1999,lat:41.10,lng:-73.96,p20:3550,p10:3439,p00:3282,i20:130000,i10:102000,i00:85000},
+  {b:"DB",city:"Westbury",state:"NY",addr:"1504 Old Country Rd",sqft:"48,000",yr:2010,lat:40.75,lng:-73.57,p20:15404,p10:15146,p00:14263,i20:105000,i10:85000,i00:67000},
+  {b:"DB",city:"Cary",state:"NC",addr:"1220 Parkside Main St",sqft:"32,000",yr:2016,lat:35.79,lng:-78.81,p20:174721,p10:135234,p00:94536,i20:107000,i10:88000,i00:70000},
+  {b:"DB",city:"Charlotte",state:"NC",addr:"8361 Concord Mills Blvd",sqft:"48,000",yr:2003,lat:35.38,lng:-80.70,p20:874579,p10:731424,p00:540828,i20:65000,i10:53000,i00:46000},
+  {b:"DB",city:"Pineville",state:"NC",addr:"11049 Carolina Place Pkwy",sqft:"40,000",yr:2018,lat:35.07,lng:-80.88,p20:10602,p10:7479,p00:3449,i20:53000,i10:43000,i00:41000},
+  {b:"DB",city:"Winston-Salem",state:"NC",addr:"3320 Silas Creek Pkwy",sqft:"35,000",yr:2019,lat:36.10,lng:-80.27,p20:249545,p10:229617,p00:185776,i20:48000,i10:40000,i00:37000},
+  {b:"DB",city:"Cincinnati",state:"OH",addr:"11735 Commons Dr",sqft:"54,000",yr:1997,lat:39.29,lng:-84.32,p20:309317,p10:296943,p00:331285,i20:42000,i10:33000,i00:29000},
+  {b:"DB",city:"Cleveland",state:"OH",addr:"25735 First St",sqft:"42,000",yr:2008,lat:41.45,lng:-81.88,p20:372624,p10:396815,p00:478403,i20:32000,i10:25000,i00:25000},
+  {b:"DB",city:"Columbus",state:"OH",addr:"3969 Merchants Row",sqft:"45,000",yr:2014,lat:40.09,lng:-82.83,p20:905748,p10:787033,p00:711470,i20:54000,i10:43000,i00:37000},
+  {b:"DB",city:"Toledo",state:"OH",addr:"5001 Monroe St",sqft:"38,000",yr:2017,lat:41.67,lng:-83.62,p20:270871,p10:287208,p00:313619,i20:39000,i10:32000,i00:32000},
+  {b:"DB",city:"Oklahoma City",state:"OK",addr:"9410 N May Ave",sqft:"40,000",yr:2015,lat:35.57,lng:-97.57,p20:681054,p10:579999,p00:506132,i20:56000,i10:45000,i00:34000},
+  {b:"DB",city:"Clackamas",state:"OR",addr:"11995 SE 82nd Ave",sqft:"40,000",yr:2021,lat:45.42,lng:-122.56,p20:7163,p10:6965,p00:5426,i20:75000,i10:60000,i00:53000},
+  {b:"DB",city:"Portland",state:"OR",addr:"11860 SW 95th Ave",sqft:"41,000",yr:2025,lat:45.46,lng:-122.74,p20:652503,p10:583776,p00:529121,i20:73000,i10:50000,i00:40000},
+  {b:"DB",city:"Bensalem",state:"PA",addr:"500 Rockhill Dr",sqft:"44,000",yr:2022,lat:40.10,lng:-74.96,p20:62707,p10:60427,p00:58434,i20:67000,i10:56000,i00:46000},
+  {b:"DB",city:"Philadelphia",state:"PA",addr:"325 N Columbus Blvd",sqft:"52,000",yr:1995,lat:39.96,lng:-75.14,p20:1603797,p10:1526006,p00:1517550,i20:49000,i10:36000,i00:30000},
+  {b:"DB",city:"Plymouth Meeting",state:"PA",addr:"500 W Germantown Pike",sqft:"40,000",yr:2014,lat:40.10,lng:-75.28,p20:7393,p10:6177,p00:5593,i20:102000,i10:80000,i00:60000},
+  {b:"DB",city:"Pittsburgh",state:"PA",addr:"180 E Waterfront Dr",sqft:"45,000",yr:2000,lat:40.40,lng:-79.91,p20:302971,p10:305704,p00:334563,i20:50000,i10:37000,i00:28000},
+  {b:"DB",city:"Providence",state:"RI",addr:"40 Providence Place",sqft:"38,000",yr:1999,lat:41.82,lng:-71.42,p20:190934,p10:178042,p00:173618,i20:48000,i10:36000,i00:26000},
+  {b:"DB",city:"Greenville",state:"SC",addr:"1025 Woodruff Rd",sqft:"40,000",yr:2016,lat:34.84,lng:-82.34,p20:70720,p10:58409,p00:56002,i20:57000,i10:41000,i00:33000},
+  {b:"DB",city:"Myrtle Beach",state:"SC",addr:"1322 Celebrity Circle",sqft:"40,000",yr:2017,lat:33.72,lng:-78.88,p20:35682,p10:27109,p00:22759,i20:44000,i10:36000,i00:35000},
+  {b:"DB",city:"Chattanooga",state:"TN",addr:"2100 Hamilton Place Blvd",sqft:"30,000",yr:2020,lat:35.02,lng:-85.17,p20:181099,p10:167674,p00:155554,i20:47000,i10:37000,i00:32000},
+  {b:"DB",city:"Memphis",state:"TN",addr:"2751 Wolfchase Galleria",sqft:"40,000",yr:2018,lat:35.23,lng:-89.81,p20:633104,p10:646889,p00:650100,i20:41000,i10:35000,i00:32000},
+  {b:"DB",city:"Nashville",state:"TN",addr:"540 Opry Mills Dr",sqft:"48,000",yr:2000,lat:36.21,lng:-86.69,p20:715884,p10:601222,p00:545524,i20:62000,i10:46000,i00:39000},
+  {b:"DB",city:"Arlington",state:"TX",addr:"425 Curtis Mathes Way",sqft:"40,000",yr:2016,lat:32.74,lng:-97.10,p20:394266,p10:365438,p00:332969,i20:63000,i10:51000,i00:47000},
+  {b:"DB",city:"Austin",state:"TX",addr:"9333 Research Blvd",sqft:"45,000",yr:1999,lat:30.39,lng:-97.73,p20:961855,p10:790390,p00:656562,i20:75000,i10:52000,i00:42000},
+  {b:"DB",city:"Dallas",state:"TX",addr:"9450 N Central Expressway",sqft:"48,000",yr:1991,lat:32.87,lng:-96.77,p20:1304379,p10:1197816,p00:1188580,i20:54000,i10:42000,i00:37000},
+  {b:"DB",city:"El Paso",state:"TX",addr:"6101 Gateway Blvd W",sqft:"35,000",yr:2016,lat:31.83,lng:-106.44,p20:678815,p10:649121,p00:563662,i20:48000,i10:39000,i00:32000},
+  {b:"DB",city:"Euless",state:"TX",addr:"1301 Chisholm Trail",sqft:"30,000",yr:2017,lat:32.84,lng:-97.08,p20:61032,p10:51277,p00:46005,i20:72000,i10:54000,i00:49000},
+  {b:"DB",city:"Frisco",state:"TX",addr:"2601 Preston Rd",sqft:"42,000",yr:2010,lat:33.15,lng:-96.79,p20:200509,p10:116989,p00:33714,i20:128000,i10:105000,i00:80000},
+  {b:"DB",city:"Houston (Richmond)",state:"TX",addr:"6010 Richmond Ave",sqft:"55,000",yr:1993,lat:29.74,lng:-95.55,p20:2304580,p10:2099451,p00:1953631,i20:53000,i10:44000,i00:36000},
+  {b:"DB",city:"Houston (Willowbrook)",state:"TX",addr:"704 Willowbrook Mall",sqft:"44,000",yr:2024,lat:29.97,lng:-95.56,p20:2304580,p10:2099451,p00:1953631,i20:53000,i10:44000,i00:36000},
+  {b:"DB",city:"Houston (Baybrook)",state:"TX",addr:"700 Baybrook Mall",sqft:"40,000",yr:2016,lat:29.56,lng:-95.13,p20:2304580,p10:2099451,p00:1953631,i20:53000,i10:44000,i00:36000},
+  {b:"DB",city:"McAllen",state:"TX",addr:"2600 Expressway 83",sqft:"32,000",yr:2018,lat:26.22,lng:-98.25,p20:142210,p10:129877,p00:106414,i20:50000,i10:41000,i00:33000},
+  {b:"DB",city:"San Antonio",state:"TX",addr:"440 Crossroads Blvd",sqft:"48,000",yr:2010,lat:29.48,lng:-98.58,p20:1434625,p10:1327407,p00:1144646,i20:53000,i10:43000,i00:36000},
+  {b:"DB",city:"Salt Lake City",state:"UT",addr:"135 S West Temple",sqft:"35,000",yr:2018,lat:40.76,lng:-111.89,p20:199723,p10:186440,p00:181743,i20:63000,i10:44000,i00:36000},
+  {b:"DB",city:"Fairfax",state:"VA",addr:"11958 Fair Oaks Mall",sqft:"41,000",yr:2016,lat:38.86,lng:-77.37,p20:24146,p10:22565,p00:21498,i20:118000,i10:97000,i00:67000},
+  {b:"DB",city:"Richmond",state:"VA",addr:"4001 Brownstone Blvd",sqft:"40,000",yr:2017,lat:37.59,lng:-77.52,p20:226610,p10:204214,p00:197790,i20:51000,i10:38000,i00:31000},
+  {b:"DB",city:"Virginia Beach",state:"VA",addr:"701 Lynnhaven Parkway",sqft:"45,000",yr:2015,lat:36.83,lng:-76.10,p20:459470,p10:437994,p00:425257,i20:78000,i10:64000,i00:48000},
+  {b:"DB",city:"Bellevue",state:"WA",addr:"500 Bellevue Way NE",sqft:"40,000",yr:2021,lat:47.61,lng:-122.20,p20:151854,p10:122363,p00:109569,i20:127000,i10:88000,i00:62000},
+  {b:"DB",city:"Seattle (Tukwila)",state:"WA",addr:"116 Tukwila Parkway",sqft:"42,000",yr:2017,lat:47.47,lng:-122.27,p20:737015,p10:608660,p00:563374,i20:97000,i10:60000,i00:45000},
+  {b:"DB",city:"Madison",state:"WI",addr:"414 West Towne Mall",sqft:"30,000",yr:2018,lat:43.07,lng:-89.49,p20:269840,p10:233209,p00:208054,i20:67000,i10:51000,i00:41000},
+  {b:"DB",city:"Wauwatosa",state:"WI",addr:"2201 N Mayfair Rd",sqft:"40,000",yr:2010,lat:43.05,lng:-88.04,p20:48387,p10:46396,p00:47271,i20:83000,i10:64000,i00:55000}
+];
+
+const yearCounts = {};
+locations.forEach(l => { yearCounts[l.yr] = (yearCounts[l.yr]||0)+1; });
+const years = Object.keys(yearCounts).map(Number).sort((a,b)=>a-b);
+const maxCount = Math.max(...Object.values(yearCounts));
+const activeYears = new Set(years);
+
+function updateCount() {
+  const n = locations.filter(l => activeYears.has(l.yr)).length;
+  document.getElementById('filter-count').textContent = n + ' of 247 shown';
+}
+
+const yearList = document.getElementById('year-list');
+years.forEach(yr => {
+  const cnt = yearCounts[yr];
+  const row = document.createElement('label');
+  row.className = 'year-row';
+  row.innerHTML = `<input type="checkbox" data-yr="${yr}" checked><span class="yr-label">${yr}</span><div class="yr-bar-wrap"><div class="yr-bar" style="width:${Math.round(cnt/maxCount*100)}%"></div></div><span class="yr-count">${cnt}</span>`;
+  row.querySelector('input').addEventListener('change', e => {
+    if (e.target.checked) activeYears.add(yr); else activeYears.delete(yr);
+    updateDots(); updateCount();
+  });
+  yearList.appendChild(row);
+});
+
+document.getElementById('btn-all').addEventListener('click', () => {
+  years.forEach(y => activeYears.add(y));
+  yearList.querySelectorAll('input').forEach(cb => cb.checked = true);
+  updateDots(); updateCount();
+});
+document.getElementById('btn-none').addEventListener('click', () => {
+  activeYears.clear();
+  yearList.querySelectorAll('input').forEach(cb => cb.checked = false);
+  updateDots(); updateCount();
+});
+
+updateCount();
+
+let dotNodes = [];
+function updateDots() {
+  dotNodes.forEach(({circle, yr}) => {
+    const on = activeYears.has(yr);
+    circle.attr('fill-opacity', on ? 0.88 : 0.15).attr('stroke-opacity', on ? 1 : 0.15);
+  });
+}
+
+const tt = document.getElementById('tt');
+const mapSide = document.getElementById('map-side');
+
+d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us => {
+  document.getElementById('loading').remove();
+  const W = 960, H = 580;
+  const proj = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
+  const path = d3.geoPath().projection(proj);
+
+  const svg = d3.select('#map-side').append('svg')
+    .attr('id','map-svg').attr('viewBox',`0 0 ${W} ${H}`).attr('width','100%').style('display','block');
+
+  svg.append('rect').attr('width',W).attr('height',H).attr('fill','#dce8f5').attr('rx',6);
+  svg.append('g').selectAll('path')
+    .data(topojson.feature(us, us.objects.states).features)
+    .join('path').attr('class','state-fill').attr('d', path);
+  svg.append('path')
+    .datum(topojson.mesh(us, us.objects.states, (a,b)=>a!==b))
+    .attr('class','state-border').attr('d', path);
+
+  const dotsLayer = svg.append('g');
+
+  locations.forEach(loc => {
+    const p = proj([loc.lng, loc.lat]);
+    if (!p) return;
+    const [x, y] = p;
+    const color = loc.b === 'ME' ? ME_COLOR : DB_COLOR;
+
+    const g = dotsLayer.append('g').style('cursor','pointer');
+    const circle = g.append('circle')
+      .attr('cx',x).attr('cy',y).attr('r',5)
+      .attr('fill',color).attr('fill-opacity',0.88)
+      .attr('stroke','#fff').attr('stroke-width',1.2);
+
+    dotNodes.push({circle, yr: loc.yr});
+
+    g.on('mouseenter', function() {
+      if (!activeYears.has(loc.yr)) return;
+      circle.attr('r', 7.5);
+      const svgEl = document.getElementById('map-svg');
+      const sr = svgEl.getBoundingClientRect();
+      const mr = mapSide.getBoundingClientRect();
+      const scale = sr.width / W;
+      const px = x * scale + (sr.left - mr.left);
+      const py = y * scale + (sr.top - mr.top);
+
+      const popChg = loc.p10 > 0 ? Math.round((loc.p20 - loc.p10)/loc.p10*100) : 0;
+      const incChg = loc.i10 > 0 ? Math.round((loc.i20 - loc.i10)/loc.i10*100) : 0;
+      const popChgStr = (popChg >= 0 ? '+' : '') + popChg + '%';
+      const incChgStr = (incChg >= 0 ? '+' : '') + incChg + '%';
+      const popChgColor = popChg >= 0 ? '#2e7d32' : '#c62828';
+      const incChgColor = incChg >= 0 ? '#2e7d32' : '#c62828';
+
+      tt.innerHTML = `
+        <div class="tt-pin"></div>
+        <div class="tt-brand" style="color:${color}">${loc.b==='ME'?'Main Event':"Dave & Buster's"}</div>
+        <div class="tt-city">${loc.city}, ${loc.state}</div>
+        <div class="tt-addr">${loc.addr} &nbsp;·&nbsp; ${loc.sqft} sq ft &nbsp;·&nbsp; Opened ${loc.yr}</div>
+        <hr class="tt-divider">
+        <div class="tt-grid">
+          <span class="tt-gl"></span>
+          <span class="tt-gh">2000</span>
+          <span class="tt-gh">2010</span>
+          <span class="tt-gh">2020</span>
+          <span class="tt-gl">Population</span>
+          <span class="tt-gv">${fmt(loc.p00)}</span>
+          <span class="tt-gv">${fmt(loc.p10)}</span>
+          <span class="tt-gv">${fmt(loc.p20)}</span>
+          <span class="tt-gl">Med. income</span>
+          <span class="tt-gv">${fmtD(loc.i00)}</span>
+          <span class="tt-gv">${fmtD(loc.i10)}</span>
+          <span class="tt-gv">${fmtD(loc.i20)}</span>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;border-top:0.5px solid #e8d870;padding-top:5px">
+          <span style="color:#888">Pop. growth '10–'20:</span><span style="color:${popChgColor};font-weight:500">${popChgStr}</span>
+          <span style="color:#888">Income growth:</span><span style="color:${incChgColor};font-weight:500">${incChgStr}</span>
+        </div>
+      `;
+      tt.style.display = 'block';
+      let left = px - 10;
+      let top = py - tt.offsetHeight - 14;
+      const maxL = mr.width - tt.offsetWidth - 6;
+      if (left > maxL) left = maxL;
+      if (left < 4) left = 4;
+      if (top < 4) top = py + 14;
+      tt.style.left = left + 'px';
+      tt.style.top = top + 'px';
+    })
+    .on('mouseleave', function() {
+      circle.attr('r', 5);
+      tt.style.display = 'none';
+    });
+  });
+}).catch(() => {
+  document.getElementById('loading').textContent = 'Failed to load map. Please refresh.';
+});
+</script>

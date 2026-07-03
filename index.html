@@ -10,19 +10,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 #header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 #header h1 { font-size: 14px; font-weight: 600; color: #1a1a1a; }
 #brand-filter { display: flex; gap: 6px; align-items: center; }
-.brand-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border-radius: 20px; border: 1.5px solid #ccc;
-  background: #fff; font-size: 12px; font-weight: 500; cursor: pointer;
-  transition: all 0.15s;
-}
+.brand-btn { display: flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 20px; border: 1.5px solid #ccc; background: #fff; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: #999; }
 .brand-btn .bdot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .brand-btn.active-me { background: #e8edf8; border-color: #1a3fa8; color: #1a3fa8; }
 .brand-btn.active-db { background: #fff0ec; border-color: #FF7043; color: #d84315; }
 .brand-btn.active-both { background: #f0f0f0; border-color: #555; color: #333; }
-.brand-btn:not(.active-me):not(.active-db):not(.active-both) { color: #999; border-color: #ddd; }
 #app { display: flex; height: calc(100vh - 49px); }
-#sidebar { width: 190px; min-width: 190px; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; overflow: hidden; }
+#sidebar { width: 210px; min-width: 210px; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; overflow: hidden; }
 #sidebar-header { padding: 10px 12px 8px; border-bottom: 1px solid #e0e0e0; }
 .sh-title { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
 .ctrl-row { display: flex; gap: 6px; }
@@ -30,26 +24,34 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ctrl-btn:hover { background: #f0f0f0; }
 #filter-count { font-size: 11px; color: #888; margin-top: 7px; }
 #year-list { overflow-y: auto; flex: 1; padding: 4px 0; }
-.year-row { display: flex; align-items: center; gap: 6px; padding: 3px 12px; cursor: pointer; user-select: none; }
+
+/* Era group headers */
+.era-header { display: flex; align-items: center; gap: 8px; padding: 6px 12px 3px; margin-top: 2px; }
+.era-swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.15); }
+.era-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #666; }
+.era-count { font-size: 10px; color: #aaa; margin-left: auto; }
+.era-toggle { font-size: 10px; color: #aaa; cursor: pointer; padding: 0 2px; user-select: none; }
+.era-toggle:hover { color: #555; }
+
+.year-row { display: flex; align-items: center; gap: 6px; padding: 2px 12px 2px 24px; cursor: pointer; user-select: none; }
 .year-row:hover { background: #f5f5f5; }
-.year-row input[type=checkbox] { width: 13px; height: 13px; cursor: pointer; accent-color: #1a3fa8; flex-shrink: 0; }
+.year-row input[type=checkbox] { width: 12px; height: 12px; cursor: pointer; flex-shrink: 0; }
 .yr-label { flex: 1; font-size: 12px; }
-.yr-bars { display: flex; flex-direction: column; gap: 2px; width: 44px; }
-.yr-bar-wrap { height: 5px; background: #e8e8e8; border-radius: 2px; overflow: hidden; }
-.yr-bar-me { height: 100%; background: #1a3fa8; border-radius: 2px; opacity: 0.6; }
-.yr-bar-db { height: 100%; background: #FF7043; border-radius: 2px; opacity: 0.6; }
-.yr-count { width: 20px; text-align: right; font-size: 11px; color: #999; }
-#map-side { flex: 1; position: relative; overflow: hidden; }
+.yr-bar-wrap { width: 38px; height: 6px; background: #e8e8e8; border-radius: 2px; overflow: hidden; }
+.yr-bar { height: 100%; border-radius: 2px; opacity: 0.65; }
+.yr-count { width: 18px; text-align: right; font-size: 11px; color: #999; }
+
+/* Legend below map */
+#legend-bar { background: #fff; border-top: 1px solid #e0e0e0; padding: 8px 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 11px; color: #555; }
+.leg-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.12); flex-shrink: 0; }
+.leg-range { font-size: 10px; color: #777; }
+
+#map-side { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+#map-wrap { flex: 1; position: relative; overflow: hidden; }
 .state-fill { fill: #d6e4f0; stroke: #fff; stroke-width: 0.8; }
 .state-border { fill: none; stroke: #fff; stroke-width: 0.8; }
-#tt {
-  display: none; position: absolute;
-  background: #fffde7; border: 1.5px solid #f0c040;
-  border-radius: 7px; padding: 11px 14px 10px;
-  min-width: 240px; font-size: 12px; line-height: 1.55; color: #222;
-  pointer-events: none; z-index: 100;
-  box-shadow: 2px 3px 8px rgba(0,0,0,0.12);
-}
+#tt { display: none; position: absolute; background: #fffde7; border: 1.5px solid #f0c040; border-radius: 7px; padding: 11px 14px 10px; min-width: 240px; font-size: 12px; line-height: 1.55; color: #222; pointer-events: none; z-index: 100; box-shadow: 2px 3px 8px rgba(0,0,0,0.12); }
 .tt-pin { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #f0c040; position: absolute; bottom: -9px; left: 16px; }
 .tt-brand { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 2px; }
 .tt-city { font-weight: 600; font-size: 14px; margin-bottom: 1px; }
@@ -62,9 +64,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 14px; color: #666; }
 @media (max-width: 600px) {
   #app { flex-direction: column; height: auto; }
-  #sidebar { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid #e0e0e0; max-height: 200px; }
-  #year-list { display: flex; flex-wrap: wrap; padding: 4px 8px; }
-  .year-row { padding: 3px 6px; }
+  #sidebar { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid #e0e0e0; max-height: 240px; }
   #map-side { height: 65vw; min-height: 300px; }
 }
 </style>
@@ -98,18 +98,46 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div id="year-list"></div>
   </div>
+
   <div id="map-side">
-    <div id="loading">Loading map…</div>
-    <div id="tt"><div class="tt-pin"></div></div>
+    <div id="map-wrap">
+      <div id="loading">Loading map…</div>
+      <div id="tt"><div class="tt-pin"></div></div>
+    </div>
+    <div id="legend-bar"></div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script>
-const ME_COLOR = '#1a3fa8', DB_COLOR = '#FF7043';
 const fmt = n => n ? n.toLocaleString() : '—';
 const fmtD = n => n ? '$' + n.toLocaleString() : '—';
+
+// 7 era groups: 1991-1995, 1996-2000, 2001-2005, 2006-2010, 2011-2015, 2016-2020, 2021-2025
+const ERAS = [
+  { label: '1991–1995', min: 1991, max: 1995 },
+  { label: '1996–2000', min: 1996, max: 2000 },
+  { label: '2001–2005', min: 2001, max: 2005 },
+  { label: '2006–2010', min: 2006, max: 2010 },
+  { label: '2011–2015', min: 2011, max: 2015 },
+  { label: '2016–2020', min: 2016, max: 2020 },
+  { label: '2021–2025', min: 2021, max: 2025 },
+];
+
+// Blues darkest→lightest (oldest→newest) for ME
+const ME_SHADES = ['#0a1f5c','#0d2d82','#1a3fa8','#3a6fd4','#6b9fe8','#9dc3f4','#c8dff9'];
+// Oranges darkest→lightest (oldest→newest) for DB
+const DB_SHADES = ['#7f1a00','#bf3300','#e84c00','#FF7043','#ff9d7a','#ffbfa5','#ffddd1'];
+
+function getEraIndex(yr) {
+  return ERAS.findIndex(e => yr >= e.min && yr <= e.max);
+}
+function getDotColor(brand, yr) {
+  const idx = getEraIndex(yr);
+  if (idx < 0) return brand === 'ME' ? '#1a3fa8' : '#FF7043';
+  return brand === 'ME' ? ME_SHADES[idx] : DB_SHADES[idx];
+}
 
 const locations = [
   {b:"ME",city:"Huntsville",state:"AL",addr:"6848 University Dr NW",sqft:"50,000",yr:2021,lat:34.70,lng:-86.68,p20:215006,p10:180105,p00:158216,i20:58000,i10:48000,i00:36000},
@@ -327,11 +355,31 @@ function setBrand(brand) {
   updateCount();
 }
 
+// --- Build legend ---
+function buildLegend() {
+  const bar = document.getElementById('legend-bar');
+  bar.innerHTML = '<span style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-right:4px;">Era:</span>';
+  ERAS.forEach((era, i) => {
+    const showME = activeBrand === 'ME' || activeBrand === 'BOTH';
+    const showDB = activeBrand === 'DB' || activeBrand === 'BOTH';
+    const item = document.createElement('span');
+    item.className = 'leg-item';
+    let dots = '';
+    if (showME) dots += `<span class="leg-dot" style="background:${ME_SHADES[i]}"></span>`;
+    if (showDB) dots += `<span class="leg-dot" style="background:${DB_SHADES[i]}"></span>`;
+    item.innerHTML = `${dots}<span class="leg-range">${era.label}</span>`;
+    bar.appendChild(item);
+  });
+  const note = document.createElement('span');
+  note.style.cssText = 'font-size:10px;color:#aaa;margin-left:auto';
+  note.textContent = 'Darker = older';
+  bar.appendChild(note);
+}
+
 // --- Year list ---
 function rebuildYearList() {
   const filtered = locations.filter(l => activeBrand === 'BOTH' || l.b === activeBrand);
-  const yearCounts = {};
-  const meCounts = {}, dbCounts = {};
+  const yearCounts = {}, meCounts = {}, dbCounts = {};
   filtered.forEach(l => {
     yearCounts[l.yr] = (yearCounts[l.yr]||0)+1;
     if (l.b==='ME') meCounts[l.yr] = (meCounts[l.yr]||0)+1;
@@ -339,123 +387,158 @@ function rebuildYearList() {
   });
   const years = Object.keys(yearCounts).map(Number).sort((a,b)=>a-b);
   const maxCount = Math.max(...Object.values(yearCounts));
-
-  // Seed activeYears with all years for this brand view if empty or switching
   activeYears.clear();
   years.forEach(y => activeYears.add(y));
 
   const yearList = document.getElementById('year-list');
   yearList.innerHTML = '';
-  years.forEach(yr => {
-    const cnt = yearCounts[yr];
-    const meC = meCounts[yr]||0;
-    const dbC = dbCounts[yr]||0;
-    const row = document.createElement('label');
-    row.className = 'year-row';
-    const showBoth = activeBrand === 'BOTH';
-    const barsME = showBoth ? `<div class="yr-bar-wrap"><div class="yr-bar-me" style="width:${Math.round(meC/maxCount*100)}%"></div></div>` : '';
-    const barsDB = showBoth ? `<div class="yr-bar-wrap"><div class="yr-bar-db" style="width:${Math.round(dbC/maxCount*100)}%"></div></div>` : '';
-    const singleBar = !showBoth ? `<div class="yr-bar-wrap" style="height:7px"><div style="height:100%;border-radius:2px;opacity:0.6;background:${activeBrand==='ME'?ME_COLOR:DB_COLOR};width:${Math.round(cnt/maxCount*100)}%"></div></div>` : '';
-    row.innerHTML = `
-      <input type="checkbox" data-yr="${yr}" checked>
-      <span class="yr-label">${yr}</span>
-      <div class="yr-bars">${showBoth ? barsME+barsDB : singleBar}</div>
-      <span class="yr-count">${cnt}</span>`;
-    row.querySelector('input').addEventListener('change', e => {
-      if (e.target.checked) activeYears.add(yr); else activeYears.delete(yr);
-      updateDots(); updateCount();
+
+  // Group by era
+  ERAS.forEach((era, eraIdx) => {
+    const eraYears = years.filter(y => y >= era.min && y <= era.max);
+    if (!eraYears.length) return;
+    const eraTotal = eraYears.reduce((s,y) => s+(yearCounts[y]||0), 0);
+    const meColor = ME_SHADES[eraIdx];
+    const dbColor = DB_SHADES[eraIdx];
+    const showME = activeBrand === 'ME' || activeBrand === 'BOTH';
+    const showDB = activeBrand === 'DB' || activeBrand === 'BOTH';
+    const swatchColor = showME && showDB ? `linear-gradient(90deg,${meColor} 50%,${dbColor} 50%)` : showME ? meColor : dbColor;
+
+    // Era header
+    const hdr = document.createElement('div');
+    hdr.className = 'era-header';
+    hdr.innerHTML = `
+      <span class="era-swatch" style="background:${swatchColor}"></span>
+      <span class="era-label">${era.label}</span>
+      <span class="era-count">${eraTotal}</span>
+      <span class="era-toggle" data-era="${eraIdx}" title="Select all in era">✓</span>
+      <span class="era-toggle" data-era="${eraIdx}" data-clear="1" title="Clear era">✕</span>`;
+    hdr.querySelectorAll('.era-toggle').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const clear = btn.dataset.clear;
+        eraYears.forEach(y => {
+          if (clear) activeYears.delete(y); else activeYears.add(y);
+          const cb = yearList.querySelector(`input[data-yr="${y}"]`);
+          if (cb) cb.checked = !clear;
+        });
+        updateDots(); updateCount();
+      });
     });
-    yearList.appendChild(row);
+    yearList.appendChild(hdr);
+
+    // Year rows
+    eraYears.forEach(yr => {
+      const cnt = yearCounts[yr];
+      const meC = meCounts[yr]||0;
+      const dbC = dbCounts[yr]||0;
+      const row = document.createElement('label');
+      row.className = 'year-row';
+      const barColor = showME && showDB
+        ? `linear-gradient(90deg,${meColor} ${Math.round(meC/cnt*100)}%,${dbColor} ${Math.round(meC/cnt*100)}%)`
+        : showME ? meColor : dbColor;
+      row.innerHTML = `
+        <input type="checkbox" data-yr="${yr}" checked style="accent-color:${showME?meColor:dbColor}">
+        <span class="yr-label">${yr}</span>
+        <div class="yr-bar-wrap"><div class="yr-bar" style="width:${Math.round(cnt/maxCount*100)}%;background:${barColor}"></div></div>
+        <span class="yr-count">${cnt}</span>`;
+      row.querySelector('input').addEventListener('change', e => {
+        if (e.target.checked) activeYears.add(yr); else activeYears.delete(yr);
+        updateDots(); updateCount();
+      });
+      yearList.appendChild(row);
+    });
   });
 
-  const title = document.getElementById('year-panel-title');
-  title.textContent = activeBrand === 'BOTH' ? 'Year opened — both brands' :
-    activeBrand === 'ME' ? 'Year opened — Main Event' : 'Year opened — Dave & Buster\'s';
+  document.getElementById('year-panel-title').textContent =
+    activeBrand === 'BOTH' ? 'Year opened — both brands' :
+    activeBrand === 'ME' ? 'Year opened — Main Event' : "Year opened — Dave & Buster's";
+
+  buildLegend();
 }
 
 document.getElementById('btn-all').addEventListener('click', () => {
-  document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = true; activeYears.add(+cb.dataset.yr); });
+  document.querySelectorAll('#year-list input[type=checkbox]').forEach(cb => { cb.checked=true; activeYears.add(+cb.dataset.yr); });
   updateDots(); updateCount();
 });
 document.getElementById('btn-none').addEventListener('click', () => {
-  document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = false; activeYears.delete(+cb.dataset.yr); });
+  document.querySelectorAll('#year-list input[type=checkbox]').forEach(cb => { cb.checked=false; activeYears.delete(+cb.dataset.yr); });
   updateDots(); updateCount();
 });
 
 function updateCount() {
-  const visible = locations.filter(l =>
-    (activeBrand === 'BOTH' || l.b === activeBrand) && activeYears.has(l.yr)
-  ).length;
-  const total = locations.filter(l => activeBrand === 'BOTH' || l.b === activeBrand).length;
+  const visible = locations.filter(l => (activeBrand==='BOTH'||l.b===activeBrand) && activeYears.has(l.yr)).length;
+  const total = locations.filter(l => activeBrand==='BOTH'||l.b===activeBrand).length;
   document.getElementById('filter-count').textContent = `${visible} of ${total} shown`;
 }
 
 function updateDots() {
   dotNodes.forEach(({circle, yr, brand}) => {
-    const brandMatch = activeBrand === 'BOTH' || brand === activeBrand;
-    const yearMatch = activeYears.has(yr);
-    const on = brandMatch && yearMatch;
-    circle.attr('fill-opacity', on ? 0.88 : 0.1).attr('stroke-opacity', on ? 1 : 0.1);
+    const brandMatch = activeBrand==='BOTH'||brand===activeBrand;
+    const on = brandMatch && activeYears.has(yr);
+    circle.attr('fill-opacity', on ? 0.92 : 0.1).attr('stroke-opacity', on ? 1 : 0.1);
   });
 }
 
 // --- Map ---
 const tt = document.getElementById('tt');
-const mapSide = document.getElementById('map-side');
+const mapWrap = document.getElementById('map-wrap');
 
 d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us => {
   document.getElementById('loading').remove();
-  const W = 960, H = 580;
-  const projection = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
+  const W=960, H=580;
+  const projection = d3.geoAlbersUsa().scale(1280).translate([W/2,H/2]);
   const path = d3.geoPath().projection(projection);
 
-  const svg = d3.select('#map-side').append('svg')
-    .attr('viewBox', `0 0 ${W} ${H}`)
+  const svg = d3.select('#map-wrap').append('svg')
+    .attr('viewBox',`0 0 ${W} ${H}`)
     .style('width','100%').style('height','100%').style('display','block');
 
   svg.append('rect').attr('width',W).attr('height',H).attr('fill','#dce8f5');
   svg.append('g').selectAll('path')
-    .data(topojson.feature(us, us.objects.states).features)
-    .join('path').attr('class','state-fill').attr('d', path);
+    .data(topojson.feature(us,us.objects.states).features)
+    .join('path').attr('class','state-fill').attr('d',path);
   svg.append('path')
-    .datum(topojson.mesh(us, us.objects.states, (a,b)=>a!==b))
-    .attr('class','state-border').attr('d', path);
+    .datum(topojson.mesh(us,us.objects.states,(a,b)=>a!==b))
+    .attr('class','state-border').attr('d',path);
 
   const dotsLayer = svg.append('g');
 
   locations.forEach(loc => {
-    const p = projection([loc.lng, loc.lat]);
+    const p = projection([loc.lng,loc.lat]);
     if (!p) return;
-    const [x, y] = p;
-    const color = loc.b === 'ME' ? ME_COLOR : DB_COLOR;
+    const [x,y] = p;
+    const color = getDotColor(loc.b, loc.yr);
     const g = dotsLayer.append('g').style('cursor','pointer');
     const circle = g.append('circle')
       .attr('cx',x).attr('cy',y).attr('r',5)
-      .attr('fill',color).attr('fill-opacity',0.88)
+      .attr('fill',color).attr('fill-opacity',0.92)
       .attr('stroke','#fff').attr('stroke-width',1.2);
 
-    dotNodes.push({circle, yr: loc.yr, brand: loc.b});
+    dotNodes.push({circle, yr:loc.yr, brand:loc.b});
 
     g.on('mouseenter touchstart', function(event) {
       event.preventDefault();
-      const brandMatch = activeBrand === 'BOTH' || loc.b === activeBrand;
-      if (!brandMatch || !activeYears.has(loc.yr)) return;
-      circle.attr('r', 7.5);
-      const svgEl = mapSide.querySelector('svg');
+      if (!(activeBrand==='BOTH'||loc.b===activeBrand) || !activeYears.has(loc.yr)) return;
+      circle.attr('r',7.5);
+      const svgEl = mapWrap.querySelector('svg');
       const sr = svgEl.getBoundingClientRect();
-      const mr = mapSide.getBoundingClientRect();
-      const scale = sr.width / W;
-      const px = x * scale + (sr.left - mr.left);
-      const py = y * scale + (sr.top - mr.top);
-      const popChg = loc.p10 > 0 ? Math.round((loc.p20-loc.p10)/loc.p10*100) : 0;
-      const incChg = loc.i10 > 0 ? Math.round((loc.i20-loc.i10)/loc.i10*100) : 0;
-      const pc = (popChg>=0?'+':'')+popChg+'%';
-      const ic = (incChg>=0?'+':'')+incChg+'%';
-      const pcol = popChg>=0?'#2e7d32':'#c62828';
-      const icol = incChg>=0?'#2e7d32':'#c62828';
+      const mr = mapWrap.getBoundingClientRect();
+      const scale = sr.width/W;
+      const px = x*scale+(sr.left-mr.left);
+      const py = y*scale+(sr.top-mr.top);
+      const eraIdx = getEraIndex(loc.yr);
+      const eraLabel = eraIdx>=0 ? ERAS[eraIdx].label : '';
+      const swatchColor = color;
+      const popChg = loc.p10>0?Math.round((loc.p20-loc.p10)/loc.p10*100):0;
+      const incChg = loc.i10>0?Math.round((loc.i20-loc.i10)/loc.i10*100):0;
+      const pc=(popChg>=0?'+':'')+popChg+'%';
+      const ic=(incChg>=0?'+':'')+incChg+'%';
+      const pcol=popChg>=0?'#2e7d32':'#c62828';
+      const icol=incChg>=0?'#2e7d32':'#c62828';
       tt.innerHTML = `
         <div class="tt-pin"></div>
-        <div class="tt-brand" style="color:${color}">${loc.b==='ME'?'Main Event':"Dave & Buster's"}</div>
+        <div class="tt-brand" style="color:${swatchColor}">${loc.b==='ME'?'Main Event':"Dave & Buster's"} <span style="font-weight:400;opacity:0.7">· ${eraLabel}</span></div>
         <div class="tt-city">${loc.city}, ${loc.state}</div>
         <div class="tt-addr">${loc.addr} · ${loc.sqft} sq ft · Opened ${loc.yr}</div>
         <hr class="tt-divider">
@@ -464,28 +547,23 @@ d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(us => {
           <span class="tt-gl">Population</span><span class="tt-gv">${fmt(loc.p00)}</span><span class="tt-gv">${fmt(loc.p10)}</span><span class="tt-gv">${fmt(loc.p20)}</span>
           <span class="tt-gl">Med. income</span><span class="tt-gv">${fmtD(loc.i00)}</span><span class="tt-gv">${fmtD(loc.i10)}</span><span class="tt-gv">${fmtD(loc.i20)}</span>
         </div>
-        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;border-top:0.5px solid #e8d870;padding-top:5px">
+        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;border-top:.5px solid #e8d870;padding-top:5px">
           <span style="color:#888">Pop '10–'20:</span><span style="color:${pcol};font-weight:600">${pc}</span>
           <span style="color:#888">Income:</span><span style="color:${icol};font-weight:600">${ic}</span>
         </div>`;
-      tt.style.display = 'block';
-      let left = px - 10, top = py - tt.offsetHeight - 14;
-      const maxL = mr.width - tt.offsetWidth - 6;
-      if (left > maxL) left = maxL;
-      if (left < 4) left = 4;
-      if (top < 4) top = py + 14;
-      tt.style.left = left+'px'; tt.style.top = top+'px';
+      tt.style.display='block';
+      let left=px-10, top=py-tt.offsetHeight-14;
+      const maxL=mr.width-tt.offsetWidth-6;
+      if(left>maxL)left=maxL; if(left<4)left=4; if(top<4)top=py+14;
+      tt.style.left=left+'px'; tt.style.top=top+'px';
     })
-    .on('mouseleave touchend', function() { circle.attr('r',5); tt.style.display='none'; });
+    .on('mouseleave touchend',function(){ circle.attr('r',5); tt.style.display='none'; });
   });
 
-  // Init
   rebuildYearList();
   updateCount();
 
-}).catch(() => {
-  document.getElementById('loading').textContent = 'Failed to load map. Please refresh.';
-});
+}).catch(()=>{ document.getElementById('loading').textContent='Failed to load map. Please refresh.'; });
 </script>
 </body>
 </html>
